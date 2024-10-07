@@ -34,4 +34,16 @@
 
 9. As someone comfortable with cooking, I already know what I want to make and have the ingredients. I want to know what amount of each spice to use in order to improve the taste of my meal.
 
-   Exception. User want to make a specific recipe we don't have in our data. We notify the user that we don't have that specific recipe but will consider it for future implementation. We log their request and assess. 
+   Exception. User want to make a specific recipe we don't have in our data. We notify the user that we don't have that specific recipe but will consider it for future implementation. We log their request and assess.
+
+10. As a kid who wants to experiment in the kitchen, I want to figure out what I can make now, without waiting for the next time we go grocery shopping
+
+   Exception. User might have a lower skill level that prevents them from making more complicated recipes without adult assistance or supervision. We suggest alternative, easier recipes or recommend to the user to “find an adult” for the more difficult/dangerous steps
+
+11. As someone who travels often, I’m tired of hotel breakfasts and want to make my own meals with the limited ingredients that I have in my hotel room.
+
+   Exception. There might not be any recipes that can be made with such few ingredients and kitchen tools/appliances. A message appears informing them of the fact, and recipes that need only a few more ingredients are shown along with a way to easily order the missing ingredient(s).
+
+12. As someone with a lot of allergies trying to meal plan for the week, I’m looking for new recipes that match my restrictions along with an easy way to order supplies that I don’t have.
+
+   Exception. Some of the ingredients to be ordered are made in a facility that also make one the user’s allergens (with possible cross-contamination). To combat this we add warning labels and offer multiple options for each needed item.
