@@ -1,0 +1,60 @@
+﻿API Spec for Recipe Generator 
+
+
+Endpoints:
+1. Get/recipes Description: 
+* Goal is to get a list of recipes based on the user input of available ingredients, skill level, and kitchen supplies they have available to themselves. 
+* Request Parameters: as stated in the description above
+   *  ingredients (list of strings) : passed in by the user 
+   * skill_level(string) : also passed in by the user could be beginner, intermediate,  advanced or easy, medium, hard 
+   * supplies(list of strings): supplies the user has available to them so we know what type of recipes to include 
+* Response:
+                        {
+                          "recipes": [
+                                {
+                                  "id": "string", 
+                                  "recipe_name": "string",
+                                  "ingredients": ["string"],
+                                  "instructions": "string",
+                                  "time": "integer",
+                                  "difficulty": "string",
+                                  "supplies": ["string"],
+                                }
+                        }
+2. Post /recipes : Goal is to submit a new recipe to the database so that it can then be searched by another user later (needs request and response)
+* Request Body
+   * {
+"id": "string", 
+                        "recipe_name": "string",
+                        "ingredients": ["string"],
+                         "instructions": "string",
+                         "time": "integer",
+                        "difficulty": "string",
+                        "supplies": ["string"],
+}
+
+
+* Response Body:
+   * {
+“Completion_messsage”: “Recipe was created and inserted correctly”
+“Recipe_id”: ‘string”
+}
+
+
+
+
+        
+Flows:
+1. Personalized Recipe Creation Following College student story
+   1. As a college student living on campus I have limited groceries and I am tired of the same bland salt, pepper, chicken and rice dish. I am wanting to spice up my dinner and come up with a new recipe.
+      1. {
+        "recipes": [
+                     {
+                        "id": "1", 
+                        "recipe_name": "Chicken Fried Rice",                                           "ingredients": ["oil, chicken, day old rice, soy sauce, salt, pepper, frozen veggies, eggs"],
+                         “instructions": "Heat up some oil in a pan and put the chicken on it and season with Salt and Pepper. Once chicken is cooked, move to the side and begin cooking the veggies and  rice. Heat up more oil on  a pan and put the veggies in. Once veggies begin to soften, throw the rice in and douse in soy sauce and some more pepper. Finally after rice and veggies are almost cooked, move the rice over and crack the eggs in the pan and scramble them. Allow full mixture to cook and then the grub is ready! ",
+                         "time": "25",
+                            "difficulty": "beginner",
+                            "supplies": ["Pan, Wooden Spoon or Spatula"],
+                        }
+}
