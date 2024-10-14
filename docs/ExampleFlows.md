@@ -63,9 +63,7 @@ Sally, an experienced home baker, is looking for dinner ideas to surprise her si
 **Request: POST/carts/**
 ```json
 {
-    "customer_name": “Sally”,
-    "cooking_type": "string",
-    "skill_level": “4” 
+    "customer_name": “Sally”
 }
 ```
 **Response**
