@@ -75,7 +75,7 @@ Sally, an experienced home baker, is looking for dinner ideas to surprise her si
 **Request: /carts/72/items/flour**
 ```json
 {
-    "quantity": 2,
+    "quantity": 2
 }
 ```
 **Response**
@@ -89,7 +89,10 @@ After successfully adding 2 bags of flour to her cart, Sally moves to checkout:
 **Request: /carts/72/checkout**
 ```json
 {
-    "payment": "string",
+    "payment": "card"
+    "card number": 1234567890
+    "exp_date": "07/28"
+    "cvv": 321
 }
 ```
 **Response**
