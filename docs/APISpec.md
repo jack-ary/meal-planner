@@ -182,10 +182,10 @@ Fetches what is currently in stock. Each item will have a single price.
 ```json
 [
     {
-        "sku": "string", /* each value unique to the item
+        "sku": "string", /* each value unique to the item */
         "name": "string",
-        "quantity": "integer", /* Between 1 and 10000
-        "price": "integer", /* Between 1 and 5000
+        "quantity": "integer", /* Between 1 and 10000 */
+        "price": "integer", /* Between 1 and 5000 */
         "item_type": "string" /* Meat, Produce, Dried/Canned/ Frozen, Sweets
     }
 ]
@@ -197,8 +197,6 @@ Creates a new cart for when the customer wants to purchase ingredients.
 ```json
 {
     "customer_name": "string",
-    "cooking_type": "string",
-    "skill_level": "number" 
 }
 ```
 **Response:**
@@ -226,14 +224,18 @@ Trades United States Currency for some of the finest items in stock in a checkou
 **Request:**
 ```json
 {
-    "payment": "string",
+    "payment" : "string",
+    "card_num": "integer",
+    "exp_date": "string",
+    "cvv": "integer"
+
 }
 ```
 **Response**
 ```json
 {
     "total_ingredients_purchased": "integer",
-    "total_amount_paid": "integer"
+    "total_amount_paid": "float"
 }
 ```
  
