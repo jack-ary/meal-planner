@@ -33,7 +33,6 @@ Submits a new recipe to the  database so that it can then be searched by another
 **Request Body:**
 ```json
 {
-  "id": "string",
   "name": "string",
   "ingredients": ["string"],
   "instructions": "string",
