@@ -73,8 +73,9 @@ After successfully adding 2 bags of flour to her cart, Sally moves to checkout:
 }
 ```
 **Response**
-
+```json
 {
     "total_ingredients_purchased": 1,
     "total_amount_paid": 7.98
 }
+```
