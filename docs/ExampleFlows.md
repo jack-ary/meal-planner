@@ -1,6 +1,28 @@
 # Example Flows for Meal Planner Backend
 
 ## 1. Get a Recipe
+
+As a college student living on campus, I have limited groceries and I am tired of the same bland salt, pepper, chicken, and rice dish. I want to spice up my dinner and come up with a new recipe.
+
+**Request: GET /recipes?ingredients=chicken,rice,veggies&skill_level=beginner&supplies=stovetop,pan**
+
+**Response:**
+```json
+{
+    "recipes": [
+        {
+            "id": "1",
+            "recipe_name": "Chicken Fried Rice",
+            "ingredients": ["oil", "chicken", "day old rice", "soy sauce", "salt", "pepper", "frozen veggies", "eggs"],
+            "instructions": "Heat up some oil in a pan and put the chicken on it and season with salt and pepper. Once the chicken is cooked, move it to the side and begin cooking the veggies and rice. Heat up more oil in a pan and put the veggies in. Once the veggies begin to soften, throw the rice in and douse with soy sauce and some more pepper. Finally, after the rice and veggies are almost cooked, move the rice over and crack the eggs in the pan and scramble them. Allow the full mixture to cook, and then the grub is ready!",
+            "time": "25",
+            "difficulty": "beginner",
+            "supplies": ["Pan", "Wooden Spoon or Spatula"]
+        }
+    ]
+}
+```
+
 ## 2. Create a Review
 Bob wants to make a cake for himself to celebrate his promotion. Given Bob's ingredients, he finds a cake recipe using the Meal Planner. He wants to check the reviews before making the cake. He uses: ```GET /reviews/34``` to find that the reviews for this cake recipe are spectacular. He makes the cake.
 

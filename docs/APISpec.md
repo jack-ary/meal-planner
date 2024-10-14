@@ -2,9 +2,134 @@
 
 ## 1. Recipe Endpoints
 
+### 1.1 Get Recipes - `/recipes` (GET)
+Fetches a list of recipes based on the user's available ingredients, skill level, and supplies.
+
+**Request Parameters:**
+- `ingredients`: List of strings representing available ingredients and passed in by user
+- `skill_level`: String representing the user's skill level (e.g., "beginner", "intermediate", "advanced") (also passed in by user).
+- `supplies`: List of strings representing available kitchen tools or appliances. supplies the user has available to them so we know what type of recipes to include.
+
+**Response:**
+```json
+{
+  "recipes": [
+    {
+      "id": "string",
+      "name": "string",
+      "ingredients": ["string"],
+      "instructions": "string",
+      "time": "integer", /* Cooking time in minutes */
+      "difficulty": "string", /* beginner, intermediate, advanced */
+      "supplies": ["string"]
+    }
+  ]
+}
+```
+
+### 1.2 Create Recipe - `/recipes` (POST)
+Submits a new recipe to the  database so that it can then be searched by another user later.
+
+**Request Body:**
+```json
+{
+  "id": "string",
+  "name": "string",
+  "ingredients": ["string"],
+  "instructions": "string",
+  "time": "integer", /* Cooking time in minutes */
+  "difficulty": "string", /* beginner, intermediate, advanced */
+  "supplies_needed": ["string"] /* Required kitchen tools */
+}
+```
+
+**Response:**
+```json
+{
+  "completion_messsage": "Recipe created successfully",
+  "recipe_id": "string"
+}
+```
+
+### 1.3 Get Recipe by ID - `/recipes/{id}` (GET)
+Gets the details of a specific recipe by its ID.
+
+**Request Parameters:**
+- `id`: String representing the unique identifier of the recipe.
+
+**Response:**
+```json
+{
+  "name": "string",
+  "ingredients": ["string"],
+  "instructions": "string",
+  "time": "integer", /* Cooking time in minutes */
+  "difficulty": "string", /* beginner, intermediate, advanced */
+  "supplies_needed": ["string"] /* Required kitchen tools */
+}
+```
+
+### 1.4 Update Recipe - `/recipes/{id}` (PUT)
+Updates an existing recipe by its ID.
+
+**Request Parameters:**
+- `id`: String representing the unique identifier of the recipe.
+
+**Request Body:**
+```json
+{
+  "name": "string",
+  "ingredients": ["string"],
+  "instructions": "string",
+  "time": "integer", /* Cooking time in minutes */
+  "difficulty": "string", /* beginner, intermediate, advanced */
+  "supplies_needed": ["string"] /* Required kitchen tools */
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Recipe updated successfully"
+}
+```
+
+### 1.5 Delete Recipe - `/recipes/{id}` (DELETE)
+Deletes a recipe by its ID.
+
+**Request Parameters:**
+- `id`: String representing the unique identifier of the recipe.
+
+**Response:**
+```json
+{
+  "message": "Recipe deleted successfully"
+}
+```
+
+### 1.6 Get Recipe Suggestions - `/suggestions` (GET)
+Gets suggested recipes that require some additional ingredients based on the user's current avalability.
+
+**Request Parameters:**
+- `ingredients`: List of strings representing the ingredients the user currently has.
+
+**Response:**
+```json
+{
+  "suggested_recipes": [
+    {
+      "id": "string",
+      "name": "string", /* Recipe Name */
+      "missing_ingredients": ["string"] /* Ingredients user needs to buy*/
+    }
+  ]
+}
+```
+
+
 ## 2. Review Endpoints
 ### 2.1 Fetch Reviews - `/reviews/{recipe_id}` (GET)
-Fetches the reviews for a given recipe
+Gives the reviews for a given recipe.
 
 
 **Response**
