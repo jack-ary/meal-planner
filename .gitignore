@@ -5,3 +5,7 @@ venv
 __pycache__
 /.env
 info.log
+lib
+include
+bin
+*.cfg
