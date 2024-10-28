@@ -7,7 +7,7 @@ router = APIRouter(
     tags=["reviews"],
 )
 
-@router.get("/reviews/{recipe_id}")
+@router.get("/{recipe_id}")
 def get_reviews(recipe_id: int):
     """
     Get the reviews for a given recipe
@@ -38,7 +38,7 @@ def get_reviews(recipe_id: int):
 
     return response
 
-@router.post("/reviews/create/{recipe_id}")
+@router.post("/create/{recipe_id}")
 def create_review(recipe_id: int, customer_id: str, rating: int, review: str):
     """
     Create a review for a given recipe
@@ -57,7 +57,7 @@ def create_review(recipe_id: int, customer_id: str, rating: int, review: str):
         "review_id": review_id
     }
 
-@router.post("/reviews/delete/{recipe_id}/{review_id}")
+@router.post("/delete/{recipe_id}/{review_id}")
 def delete_review(recipe_id: int, review_id: int, deleted_by: str):
     """
     Delete a review for a given recipe
