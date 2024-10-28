@@ -52,9 +52,7 @@ After Bob receives lashback for his horrible review and realizes the mistake tha
 ```
 **Response**
 ```json
-{
-    "success": "true"
-}
+"OK"
 ```
 
 ## 3. Purchase Ingredients

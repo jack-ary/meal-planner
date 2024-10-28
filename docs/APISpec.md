@@ -160,7 +160,7 @@ Gives the reviews for a given recipe.
   "review_id": "integer", /* This id will be used to delete a review if necessary */
 }
 ```
-### 2.3 Delete a Review - `/reviews/delete/{recipe_id}` (POST)
+### 2.3 Delete a Review - `/reviews/delete/{recipe_id}/{review_id}` (POST)
 **Request**
 ```json
 {
@@ -169,9 +169,7 @@ Gives the reviews for a given recipe.
 ```
 **Response**
 ```json
-{
-    "success": "boolean"
-}
+"OK"
 ```
 ## 3. Cart Endpoints
 
