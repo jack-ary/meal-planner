@@ -225,6 +225,8 @@ CREATE TABLE public.recipes (
     instructions text,
     difficulty text,
     "time" integer
+    ingredients text[] NOT NULL DEFAULT '{}',
+    supplies_needed text[] NOT NULL DEFAULT '{}'
 );
 
 
@@ -369,6 +371,8 @@ ALTER TABLE ONLY public.recipes
 
 ALTER TABLE ONLY public.reviews
     ADD CONSTRAINT reviews_pkey PRIMARY KEY (review_id);
+    ADD CONSTRAINT fk_recipe FOREIGN KEY (recipe_id) REFERENCES public.recipes(id),
+    ADD CONSTRAINT fk_customer FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id);
 
 
 --
@@ -414,13 +418,16 @@ ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.recipe_ingredients ENABLE ROW LEVEL SECURITY;
+    ADD CONSTRAINT fk_recipe_ingredients_recipe FOREIGN KEY (recipe_id) REFERENCES public.recipes(id),
+    ADD CONSTRAINT fk_recipe_ingredients_ingredient FOREIGN KEY (ingredient_id) REFERENCES public.ingredients(ingredient_id);
 
 --
 -- Name: recipe_supplies; Type: ROW SECURITY; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.recipe_supplies ENABLE ROW LEVEL SECURITY;
-
+    ADD CONSTRAINT fk_recipe_supplies_recipe FOREIGN KEY (recipe_id) REFERENCES public.recipes(id),
+    ADD CONSTRAINT fk_recipe_supplies_supply FOREIGN KEY (supply_id) REFERENCES public.supplies(supply_id);
 --
 -- Name: recipes; Type: ROW SECURITY; Schema: public; Owner: postgres
 --
