@@ -5,8 +5,8 @@ from src import database as db
 import sqlalchemy
 
 router = APIRouter(
-    prefix = "/recipes", 
-    tags = ["recipes"]
+    prefix="/recipes",
+    tags=["recipes"]
 )
 
 class Recipe(BaseModel):
@@ -25,19 +25,15 @@ class SuggestedRecipe(BaseModel):
     name: str
     missing_ingredients: List[str]
 
-
 # 1.1 get recipe
 @router.get("/", response_model=List[RecipeResponse])
-
 def get_recipes(ingredients: Optional[List[str]] = Query(None), difficulty: Optional[str] = None, supplies: Optional[List[str]] = Query(None)):
 
     with db.engine.begin() as connection:
-        recipes = connection.execute(sqlalchemy.text(
-            """
-            SELECT id, name, ingredients, instructions, time, difficulty, supplies 
-            FROM recipes
-            """
-        ))
+        query = "SELECT id, name, ingredients, instructions, time, difficulty, supplies FROM recipes"
+        recipes = connection.execute(sqlalchemy.text(query)).mappings().all()
+
+        # Filter recipes in Python since PostgreSQL does not support list containment directly in simple queries
         if difficulty:
             recipes = [recipe for recipe in recipes if recipe['difficulty'] == difficulty]
 
@@ -54,11 +50,10 @@ def get_recipes(ingredients: Optional[List[str]] = Query(None), difficulty: Opti
 
         response = [dict(recipe) for recipe in recipes]
 
-    return response 
+    return response
 
-# 1.2 create recipe 
+# 1.2 create recipe
 @router.post("/", response_model=Dict[str, Any])
-
 def create_recipe(recipe: Recipe):
 
     with db.engine.begin() as connection:
@@ -66,25 +61,24 @@ def create_recipe(recipe: Recipe):
             """
             INSERT INTO recipes (name, ingredients, instructions, time, difficulty, supplies)
             VALUES(:name, :ingredients, :instructions, :time, :difficulty, :supplies)
-            RETURNING id 
+            RETURNING id
             """
         ), {
-            "name": recipe.name, 
-            "ingredients": recipe.ingredients, 
-            "instructions": recipe.instructions, 
-            "time": recipe.time, 
-            "difficulty": recipe.difficulty, 
-            "supplies_needed": recipe.supplies
+            "name": recipe.name,
+            "ingredients": recipe.ingredients,
+            "instructions": recipe.instructions,
+            "time": recipe.time,
+            "difficulty": recipe.difficulty,
+            "supplies": recipe.supplies
         }).scalar_one()
     
     return {
-        "reciped_created" : "Recipe created successfully", 
-        "recipe_id" : recipe_id
+        "recipe_created": "Recipe created successfully",
+        "recipe_id": recipe_id
     }
 
-#1.3 get recipe id
+# 1.3 get recipe by id
 @router.get("/{id}", response_model=RecipeResponse)
-
 def get_recipe_by_id(id: int):
 
     with db.engine.begin() as connection:
@@ -94,17 +88,16 @@ def get_recipe_by_id(id: int):
             FROM recipes
             WHERE id = :id
             """
-        ), { "id" : id }).mappings().first()
+        ), {"id": id}).mappings().first()
 
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe was not found in db")
     
     return recipe
 
-#1.4 update recipe
+# 1.4 update recipe
 @router.put("/{id}", response_model=Dict[str, str])
-
-def update_recipe(id:int, recipe: Recipe) :
+def update_recipe(id: int, recipe: Recipe):
 
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text(
@@ -115,13 +108,13 @@ def update_recipe(id:int, recipe: Recipe) :
             WHERE id = :id
             """
         ), {
-            "id": id, 
-            "name": recipe.name, 
-            "ingredients": recipe.ingredients, 
-            "instructions": recipe.instructions, 
-            "time": recipe.time, 
-            "difficulty": recipe.difficulty, 
-            "supplies" : recipe.supplies
+            "id": id,
+            "name": recipe.name,
+            "ingredients": recipe.ingredients,
+            "instructions": recipe.instructions,
+            "time": recipe.time,
+            "difficulty": recipe.difficulty,
+            "supplies": recipe.supplies
         })
 
     if result.rowcount == 0:
@@ -129,12 +122,11 @@ def update_recipe(id:int, recipe: Recipe) :
     
     return {"recipe_updated": "Recipe updated successfully"}
 
-#1.6 delete recipe
-@router.delete("/{id}", response_model=Dict[str,str])
+# 1.5 delete recipe
+@router.delete("/{id}", response_model=Dict[str, str])
 def delete_recipe(id: int):
 
     with db.engine.begin() as connection:
-
         result = connection.execute(sqlalchemy.text(
             """
             DELETE FROM recipes
@@ -145,19 +137,18 @@ def delete_recipe(id: int):
     if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="Recipe was not found in db")
 
-    return {"deleted_complete" : "Recipe deleted"}
+    return {"deleted_complete": "Recipe deleted"}
 
-#1.6 recipe suggestions
+# 1.6 recipe suggestions
 @router.get("/suggestions", response_model=List[SuggestedRecipe])
-
-def get_recipe_suggestions(ingredients:List[str] = Query(...)):
+def get_recipe_suggestions(ingredients: List[str] = Query(...)):
 
     suggestions = []
 
     with db.engine.begin() as connection:
         recipes = connection.execute(sqlalchemy.text(
             "SELECT id, name, ingredients FROM recipes"
-        ))
+        )).mappings().all()
 
         for recipe in recipes:
             missing_ingredients = []
