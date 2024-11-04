@@ -220,6 +220,65 @@ def create_recipe(recipe: Recipe):
         "recipe_id": recipe_id
     }
 
+# 1.6 recipe suggestions  
+@router.get("/suggestions", response_model=List[SuggestedRecipe])
+def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
+    # create normalized_ingredients so we dont worry about case or spacing 
+    normalized_ingredients = {ingredient.strip().lower() for ingredient in ingredients}
+    suggestions = []
+
+    with db.engine.begin() as connection:
+        # look through all the recipes and if it includes one of inputted ingredients, return the rest of the ingredients for that recipe
+        recipes = connection.execute(sqlalchemy.text(
+            """
+            SELECT r.id AS recipe_id, r.name AS recipe_name, i.ingredient_name AS ingredient_name, 
+                   ri.amount_units, i.price, i.item_type
+            FROM recipes AS r
+            INNER JOIN recipe_ingredients AS ri ON r.id = ri.recipe_id
+            INNER JOIN ingredients AS i ON i.ingredient_id = ri.ingredient_id
+            WHERE LOWER(i.ingredient_name) = ANY(:ingredients)
+            OR r.id IN (
+                SELECT DISTINCT recipe_id
+                FROM recipe_ingredients ri
+                INNER JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
+                WHERE LOWER(i.ingredient_name) = ANY(:ingredients)
+            )
+            """
+        ), {"ingredients": list(normalized_ingredients)}).mappings().all()
+
+        # filter by recipe id
+        recipe_dict = {}
+        for row in recipes:
+            recipe_id = row["recipe_id"]
+            if recipe_id not in recipe_dict:
+                recipe_dict[recipe_id] = {
+                    "id": recipe_id,
+                    "name": row["recipe_name"],
+                    "ingredients": []
+                }
+            # create a new dict to appened all required ingredients
+            recipe_dict[recipe_id]["ingredients"].append(Ingredient(
+                name=row["ingredient_name"],
+                amount_units=row["amount_units"],
+                price=row["price"],
+                item_type=row["item_type"]
+            ))
+
+        # determine which ingredient the user doesnt have 
+        for recipe in recipe_dict.values():
+            missing_ingredients = [
+                ingredient for ingredient in recipe["ingredients"]
+                if ingredient.name.lower() not in normalized_ingredients
+            ]
+            # add to the suggestions if they are missing the ingredients 
+            if missing_ingredients:
+                suggestions.append(SuggestedRecipe(
+                    id=recipe["id"],
+                    name=recipe["name"],
+                    missing_ingredients=missing_ingredients
+                ))
+    
+    return suggestions
 
 # 1.3 get recipe by id
 @router.get("/{id}", response_model=Recipe)
@@ -404,64 +463,4 @@ def delete_recipe(id: int):
         raise HTTPException(status_code=404, detail="Recipe was not found in db")
 
     return {"deleted_complete": "Recipe deleted"}
-
-# 1.6 recipe suggestions  
-@router.get("/suggestions", response_model=List[SuggestedRecipe])
-def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
-    # create normalized_ingredients so we dont worry about case or spacing 
-    normalized_ingredients = {ingredient.strip().lower() for ingredient in ingredients}
-    suggestions = []
-
-    with db.engine.begin() as connection:
-        # look through all the recipes and if it includes one of inputted ingredients, return the rest of the ingredients for that recipe
-        recipes = connection.execute(sqlalchemy.text(
-            """
-            SELECT r.id AS recipe_id, r.name AS recipe_name, i.ingredient_name AS ingredient_name, 
-                   ri.amount_units, i.price, i.item_type
-            FROM recipes AS r
-            INNER JOIN recipe_ingredients AS ri ON r.id = ri.recipe_id
-            INNER JOIN ingredients AS i ON i.ingredient_id = ri.ingredient_id
-            WHERE LOWER(i.ingredient_name) = ANY(:ingredients)
-            OR r.id IN (
-                SELECT DISTINCT recipe_id
-                FROM recipe_ingredients ri
-                INNER JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
-                WHERE LOWER(i.ingredient_name) = ANY(:ingredients)
-            )
-            """
-        ), {"ingredients": list(normalized_ingredients)}).mappings().all()
-
-        # filter by recipe id
-        recipe_dict = {}
-        for row in recipes:
-            recipe_id = row["recipe_id"]
-            if recipe_id not in recipe_dict:
-                recipe_dict[recipe_id] = {
-                    "id": recipe_id,
-                    "name": row["recipe_name"],
-                    "ingredients": []
-                }
-            # create a new dict to appened all required ingredients
-            recipe_dict[recipe_id]["ingredients"].append(Ingredient(
-                name=row["ingredient_name"],
-                amount_units=row["amount_units"],
-                price=row["price"],
-                item_type=row["item_type"]
-            ))
-
-        # determine which ingredient the user doesnt have 
-        for recipe in recipe_dict.values():
-            missing_ingredients = [
-                ingredient for ingredient in recipe["ingredients"]
-                if ingredient.name.lower() not in normalized_ingredients
-            ]
-            # add to the suggestions if they are missing the ingredients 
-            if missing_ingredients:
-                suggestions.append(SuggestedRecipe(
-                    id=recipe["id"],
-                    name=recipe["name"],
-                    missing_ingredients=missing_ingredients
-                ))
-    
-    return suggestions
 
