@@ -78,22 +78,51 @@ def create_recipe(recipe: Recipe):
     }
 
 # 1.3 get recipe by id
-@router.get("/{id}", response_model=RecipeResponse)
+@router.get("/{id}", response_model=Recipe)
 def get_recipe_by_id(id: int):
 
     with db.engine.begin() as connection:
-        recipe = connection.execute(sqlalchemy.text(
+        ingredients = connection.execute(sqlalchemy.text(
             """
-            SELECT id, name, ingredients, instructions, time, difficulty, supplies
+            SELECT ingredient_name
+            FROM recipe_ingredients
+            INNER JOIN ingredients on ingredients.ingredient_id=recipe_ingredients.ingredient_id
+            WHERE recipe_id = :id
+            """
+        ), [{"id": id}]).all()
+
+        if not ingredients:
+            raise HTTPException(status_code=404, detail="Recipe not found")
+        
+        final_ingredients = [row.ingredient_name for row in ingredients]
+
+        supplies = connection.execute(sqlalchemy.text(
+            """
+            SELECT supply_name
+            FROM recipe_supplies
+            INNER JOIN supplies on supplies.supply_id=recipe_supplies.supply_id
+            WHERE recipe_id = :id
+            """
+        ), [{"id": id}]).all()
+
+        final_supplies = [row.supply_name for row in supplies]
+
+        id, name, instructions, time, difficulty = connection.execute(sqlalchemy.text(
+            """
+            SELECT id, name, instructions, time, difficulty
             FROM recipes
             WHERE id = :id
             """
-        ), {"id": id}).mappings().first()
+        ), [{"id": id}]).one()
 
-    if not recipe:
-        raise HTTPException(status_code=404, detail="Recipe was not found in db")
-    
-    return recipe
+        return {
+            "name": name,
+            "instructions": instructions,
+            "time": time,
+            "difficulty": difficulty,
+            "ingredients": final_ingredients,
+            "supplies": final_supplies
+        }
 
 # 1.4 update recipe
 @router.put("/{id}", response_model=Dict[str, str])
