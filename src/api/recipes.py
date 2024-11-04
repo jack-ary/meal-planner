@@ -10,6 +10,7 @@ router = APIRouter(
 )
 
 class Recipe(BaseModel):
+    id: int
     name: str
     ingredients: List[str]
     instructions: str
@@ -25,32 +26,113 @@ class SuggestedRecipe(BaseModel):
     name: str
     missing_ingredients: List[str]
 
+
+# {
+#   "recipes": [
+#     {
+#       "id": "string",
+#       "name": "string",
+#       "ingredients": ["string"],
+#       "instructions": "string",
+#       "time": "integer", /* Cooking time in minutes */
+#       "difficulty": "string", /* beginner, intermediate, advanced */
+#       "supplies": ["string"]
+#     }
+#   ]
+# }
 # 1.1 get recipe
 @router.get("/", response_model=List[RecipeResponse])
 def get_recipes(ingredients: Optional[List[str]] = Query(None), difficulty: Optional[str] = None, supplies: Optional[List[str]] = Query(None)):
 
     with db.engine.begin() as connection:
-        query = "SELECT id, name, ingredients, instructions, time, difficulty, supplies FROM recipes"
-        recipes = connection.execute(sqlalchemy.text(query)).mappings().all()
+        recipe_query = """SELECT id, name, instructions, time, difficulty FROM recipes AS r"""
+        recipe_data = connection.execute(sqlalchemy.text(recipe_query)).mappings().all()
 
-        # Filter recipes in Python since PostgreSQL does not support list containment directly in simple queries
-        if difficulty:
-            recipes = [recipe for recipe in recipes if recipe['difficulty'] == difficulty]
+        ingredient_query = """SELECT r.id as recipe_id, i.ingredient_name
+                            FROM recipes AS r
+                            LEFT OUTER JOIN recipe_ingredients AS ri ON ri.recipe_id = r.id
+                            LEFT OUTER JOIN ingredients AS i ON i.ingredient_id = ri.ingredient_id
+                            """        
+        ingredient_data = connection.execute(sqlalchemy.text(ingredient_query)).mappings().all()
 
-        if supplies:
-            recipes = [
-                recipe for recipe in recipes
-                if all(supply in recipe['supplies'] for supply in supplies)
-            ]
-        if ingredients:
-            recipes = [
-                recipe for recipe in recipes
-                if all(ingredient in recipe['ingredients'] for ingredient in ingredients)
-            ]
+        supplies_query = """SELECT r.id as recipe_id, s.supply_name
+                            FROM recipes AS r
+                            LEFT OUTER JOIN recipe_supplies rs on r.id = rs.recipe_id
+                            LEFT OUTER JOIN supplies s on rs.supply_id = s.supply_id
+                            """        
+        supplies_data = connection.execute(sqlalchemy.text(supplies_query)).mappings().all()
 
-        response = [dict(recipe) for recipe in recipes]
+
+        # Organize ingredients and supplies by recipe_id
+        ingredients_dict = {}
+        for ingredient in ingredient_data:
+            recipe_id = ingredient["recipe_id"]
+            ingredient_name = ingredient["ingredient_name"]
+            if recipe_id not in ingredients_dict:
+                ingredients_dict[recipe_id] = []
+            if ingredient_name:  # Avoid adding None ingredients
+                ingredients_dict[recipe_id].append(ingredient_name)
+
+        supplies_dict = {}
+        for supply in supplies_data:
+            recipe_id = supply["recipe_id"]
+            supply_name = supply["supply_name"]
+            if recipe_id not in supplies_dict:
+                supplies_dict[recipe_id] = []
+            if supply_name:  # Avoid adding None supplies
+                supplies_dict[recipe_id].append(supply_name)
+
+        # Create list of Recipe instances
+        recipes = []
+        for recipe in recipe_data:
+            recipe_id = recipe["id"]
+            new_recipe = Recipe(
+                id=recipe["id"],
+                name=recipe["name"],
+                ingredients=ingredients_dict.get(recipe_id, []),
+                instructions=recipe["instructions"],
+                time=recipe["time"],
+                difficulty=recipe["difficulty"],
+                supplies=supplies_dict.get(recipe_id, [])
+            )
+            recipes.append(new_recipe)
+
+    # Filter recipes in Python with case-insensitive and whitespace-trimmed matching
+    if difficulty:
+        difficulty = difficulty.strip().lower()
+        recipes = [recipe for recipe in recipes if recipe.difficulty.strip().lower() == difficulty]
+
+    if supplies:
+        supplies = [supply.strip().lower() for supply in supplies]
+        recipes = [
+            recipe for recipe in recipes
+            if all(supply in [s.strip().lower() for s in recipe.supplies] for supply in supplies)
+        ]
+
+    if ingredients:
+        ingredients = [ingredient.strip().lower() for ingredient in ingredients]
+        recipes = [
+            recipe for recipe in recipes
+            if all(ingredient in [i.strip().lower() for i in recipe.ingredients] for ingredient in ingredients)
+        ]
+
+    # Format the response as a JSON list with the "recipes" root key
+    response = [
+        {
+            "id": recipe.dict().get("id"),
+            "name": recipe.name,
+            "ingredients": recipe.ingredients,
+            "instructions": recipe.instructions,
+            "time": recipe.time,
+            "difficulty": recipe.difficulty,
+            "supplies": recipe.supplies
+        }
+        for recipe in recipes
+    ]
 
     return response
+
+
 
 # 1.2 create recipe
 @router.post("/", response_model=Dict[str, Any])
