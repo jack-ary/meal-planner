@@ -90,9 +90,6 @@ def get_recipe_by_id(id: int):
             WHERE recipe_id = :id
             """
         ), [{"id": id}]).all()
-
-        if not ingredients:
-            raise HTTPException(status_code=404, detail="Recipe not found")
         
         final_ingredients = [row.ingredient_name for row in ingredients]
 
@@ -107,19 +104,22 @@ def get_recipe_by_id(id: int):
 
         final_supplies = [row.supply_name for row in supplies]
 
-        id, name, instructions, time, difficulty = connection.execute(sqlalchemy.text(
+        recipe = connection.execute(sqlalchemy.text(
             """
             SELECT id, name, instructions, time, difficulty
             FROM recipes
             WHERE id = :id
             """
-        ), [{"id": id}]).one()
+        ), [{"id": id}]).one_or_none()
+
+        if not recipe:
+            raise HTTPException(status_code=404, detail="Recipe not found")
 
         return {
-            "name": name,
-            "instructions": instructions,
-            "time": time,
-            "difficulty": difficulty,
+            "name": recipe.name,
+            "instructions": recipe.instructions,
+            "time": recipe.time,
+            "difficulty": recipe.difficulty,
             "ingredients": final_ingredients,
             "supplies": final_supplies
         }
