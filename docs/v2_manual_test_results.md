@@ -144,3 +144,57 @@ curl -X 'DELETE' \
 }
 ```
 
+
+### Test Case: Cart Creation: 
+
+**Request**
+```bash
+curl -X 'POST' \
+  'https://meal-planner-9c99.onrender.com/carts/create/1?customer_id=1&payment_id=1' \
+  -H 'accept: application/json' \
+  -d ''
+```
+
+**Response**
+```json
+{
+  "cart_id" : 1
+}
+```
+### Test Case: Add items to Cart: 
+
+**Request**
+```bash
+curl -X 'POST' \
+  'https://meal-planner-9c99.onrender.com/carts/1/items/1?quantity=1' \
+  -H 'accept: application/json' \
+  -d ''
+```
+
+
+**Response**
+```json
+{
+  "Success"
+}
+```
+
+### Test Case: Checkout: 
+
+**Request**
+```bash
+curl -X 'POST' \
+  'https://meal-planner-9c99.onrender.com/carts/2/checkout?payment_id=3&card_num=6768123456789012&exp_date=12%2F24&customer_id=2' \
+  -H 'accept: application/json' \
+  -d ''
+```
+
+
+**Response**
+```json
+{
+  "total_ingredients_purchased": "7",
+  "total_amount_paid":" 70" 
+}
+
+```
