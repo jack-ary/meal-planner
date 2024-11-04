@@ -236,3 +236,19 @@ Trades United States Currency for some of the finest items in stock in a checkou
 }
 ```
  
+## 4. Customer Endpoints
+### 4.1 Register - `/customers/register` (POST)
+Allows a customer to register themselves.
+
+**Request**
+```json
+{
+  "customer_name": name
+}
+```
+**Response**
+```json
+{
+  "customer_id": id
+}
+```

@@ -7,7 +7,7 @@ router = APIRouter(
     tags=["customers"],
 )
 
-@router.post("/create")
+@router.post("/register")
 def register_customer(customer_name: str):
     """
     Register a customer - allows customers to create an id for themselves
