@@ -39,7 +39,7 @@ def get_reviews(recipe_id: int):
     return response
 
 @router.post("/create/{recipe_id}")
-def create_review(recipe_id: int, customer_id: str, rating: int, review: str):
+def create_review(recipe_id: int, customer_id: int, rating: int, review: str):
     """
     Create a review for a given recipe
     """
