@@ -8,7 +8,7 @@ router = APIRouter(
 )
 
 @router.post("/create/{cart_id}")
-def create_cart(cart_id: int, customer_id: int,payment_id: int):
+def create_cart():
     """ create cart """
     with db.engine.begin() as connection:
       cart_id = connection.execute(sqlalchemy.text(
@@ -16,13 +16,12 @@ def create_cart(cart_id: int, customer_id: int,payment_id: int):
         INSERT INTO carts(customer_id, payment_id)
         VALUES (:customer_id, :payment_id)
         RETURNING cart_id
-        """),[{"customer_id": customer_id,
-              "payment_id": payment_id}]).scalarone()
+        """),).scalarone()
 
     return {"cart_id":cart_id}
 
 @router.post("/{cart_id}/items/{item_id}")
-def set_item_quantity(cart_id:int, item_id: int, quantity:int):
+def set_item_quantity(ingredient_name: str, quantity:int):
    """ add items to cart """
    with db.engine.begin() as connection:
       connection.execute(sqlalchemy.text(
@@ -30,15 +29,14 @@ def set_item_quantity(cart_id:int, item_id: int, quantity:int):
         INSERT INTO cart_items (cart_id, item_id, quantity)
         VALUES (:cart_id, :item_id, :quantity)
         RETURNING cart_id, item_id, quantity
-        """),[{"cart_id":cart_id,
-              "item_id":item_id,
+        """),[{
               "quantity":quantity }]).scalarone()
 
    return {"Success": True}
 
 
 @router.post("/{cart_id}/checkout")
-def checkout(cart_id:int,payment_id:int,card_num:int,exp_date:str,customer_id:int):
+def checkout(customer_name: str,card_num:int,exp_date:str,customer_id:int):
    """purchase items"""
    with db.engine.begin() as connection:
       payment = connection.execute(sqlalchemy.text(
@@ -46,7 +44,7 @@ def checkout(cart_id:int,payment_id:int,card_num:int,exp_date:str,customer_id:in
         INSERT INTO payments (payment_id, card_num, exp_date, cvv, customer_id)
         VALUES (:payment_id, :card_num, :exp_date, :cvv, :customer_id)
         RETURNING payment_id, card_num, exp_date, cvv, customer_id
-        """), [{"payment_id": payment_id,
+        """), [{
                 "card_num": card_num,
                 "exp_date": exp_date,
                 "customer_id": customer_id}])
@@ -61,7 +59,7 @@ def checkout(cart_id:int,payment_id:int,card_num:int,exp_date:str,customer_id:in
         FROM cart_items
         JOIN ingredients ON ingredients.ingredient_id = cart_items.item_id
         WHERE cart_items.cart_id = :cart_id
-            """),{"cart_id":cart_id}).scalarone()
+            """)).scalarone()
       
       total_ingredients_purchased = cart_checkout["total_ingredients_purchased"]
       total_amount_paid = cart_checkout["total_amount_paid"]
