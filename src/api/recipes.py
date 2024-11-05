@@ -39,7 +39,6 @@ class SuggestedRecipe(BaseModel):
 
 # 1.1 get recipes
 @router.get("/", response_model=List[RecipeResponse])
-#optional because maybe they dont input everything all of the time
 def get_recipes(ingredients: Optional[List[str]] = Query(None), difficulty: Optional[str] = None, supplies: Optional[List[str]] = Query(None)):
 
     with db.engine.begin() as connection:
@@ -75,7 +74,7 @@ def get_recipes(ingredients: Optional[List[str]] = Query(None), difficulty: Opti
             }
             if recipe_id not in ingredients_dict:
                 ingredients_dict[recipe_id] = []
-            if ingredient["ingredient_name"]:  # dont want to get an ingredient if its name is none
+            if ingredient["ingredient_name"]:  # don't want to get an ingredient if its name is None
                 ingredients_dict[recipe_id].append(ingredient_info)
 
         supplies_dict = {}
@@ -84,7 +83,7 @@ def get_recipes(ingredients: Optional[List[str]] = Query(None), difficulty: Opti
             supply_info = {"supply_name": supply["supply_name"]}
             if recipe_id not in supplies_dict:
                 supplies_dict[recipe_id] = []
-            if supply["supply_name"]:  # same thing as above catching an edge case dont want to get a none supply name
+            if supply["supply_name"]:  # catching an edge case, don't want to get a None supply name
                 supplies_dict[recipe_id].append(supply_info)
 
         # with all the information we have above create a list of recipes 
@@ -94,15 +93,24 @@ def get_recipes(ingredients: Optional[List[str]] = Query(None), difficulty: Opti
             new_recipe = Recipe(
                 id=recipe["id"],
                 name=recipe["name"],
-                ingredients=[Ingredient(**ingredient) for ingredient in ingredients_dict.get(recipe_id, [])],
+                ingredients=[
+                    Ingredient(
+                        name=ingredient["name"],
+                        amount_units=ingredient["amount_units"],
+                        price=ingredient["price"],
+                        item_type=ingredient["item_type"]
+                    ) for ingredient in ingredients_dict.get(recipe_id, [])
+                ],
                 instructions=recipe["instructions"],
                 time=recipe["time"],
                 difficulty=recipe["difficulty"],
-                supplies=[Supply(**supply) for supply in supplies_dict.get(recipe_id, [])]
+                supplies=[
+                    Supply(supply_name=supply["supply_name"]) for supply in supplies_dict.get(recipe_id, [])
+                ]
             )
             recipes.append(new_recipe)
 
-    # this is going to filter all the recipes so we can match their input precfrences and also takes of case and white space 
+    # this is going to filter all the recipes so we can match their input preferences and also takes care of case and whitespace
     if difficulty:
         difficulty = difficulty.strip().lower()
         recipes = [recipe for recipe in recipes if recipe.difficulty.strip().lower() == difficulty]
@@ -121,8 +129,9 @@ def get_recipes(ingredients: Optional[List[str]] = Query(None), difficulty: Opti
             if all(ingredient in [i.name.strip().lower() for i in recipe.ingredients] for ingredient in ingredients)
         ]
 
-    response = [
-        {
+    response = []
+    for recipe in recipes:
+        response.append({
             "id": recipe.id,
             "name": recipe.name,
             "ingredients": recipe.ingredients,
@@ -130,19 +139,18 @@ def get_recipes(ingredients: Optional[List[str]] = Query(None), difficulty: Opti
             "time": recipe.time,
             "difficulty": recipe.difficulty,
             "supplies": recipe.supplies
-        }
-        for recipe in recipes
-    ]
+        })
 
     return response
 
-#1.2 create recipe
+
+# 1.2 create recipe
 @router.post("/", response_model=Dict[str, Any])
 def create_recipe(recipe: Recipe):
 
     with db.engine.begin() as connection:
-        # insert the recipe the person wants to create into the recipes table 
-        recipe_id = connection.execute(sqlalchemy.text(
+        # insert the recipe the person wants to create into the recipes table
+        recipe_result = connection.execute(sqlalchemy.text(
             """
             INSERT INTO recipes (name, instructions, time, difficulty)
             VALUES (:name, :instructions, :time, :difficulty)
@@ -153,30 +161,37 @@ def create_recipe(recipe: Recipe):
             "instructions": recipe.instructions,
             "time": recipe.time,
             "difficulty": recipe.difficulty
-        }).scalar_one()
-        
-        # insert all the ingredients required 
-        for ingredient in recipe.ingredients:
-            # the on conflict is for making it case insenstive 
-            connection.execute(sqlalchemy.text(
-                """
-                INSERT INTO ingredients (ingredient_name, price, item_type)
-                VALUES (LOWER(:ingredient_name), :price, :item_type)
-                ON CONFLICT (LOWER(ingredient_name)) DO NOTHING
-                """
-            ), {
-                "ingredient_name": ingredient.name,
-                "price": ingredient.price,
-                "item_type": ingredient.item_type
-            })
+        })
+        recipe_id = recipe_result.scalar_one()
 
-            ingredient_id = connection.execute(sqlalchemy.text(
+        # insert each ingredient for the recipe
+        for ingredient in recipe.ingredients:
+            # check if the ingredient already exists (case insensitive)
+            existing_ingredient_result = connection.execute(sqlalchemy.text(
                 """
                 SELECT ingredient_id FROM ingredients WHERE LOWER(ingredient_name) = LOWER(:ingredient_name)
                 """
-            ), {"ingredient_name": ingredient.name}).scalar_one()
+            ), {"ingredient_name": ingredient.name})
+            existing_ingredient_id = existing_ingredient_result.scalar()
 
-            # with previously retrieved ingredient_id insert all ingredients data into recipe_ingredient table
+            # if the ingredient does not exist, insert it
+            if existing_ingredient_id is None:
+                ingredient_insert_result = connection.execute(sqlalchemy.text(
+                    """
+                    INSERT INTO ingredients (ingredient_name, price, item_type)
+                    VALUES (LOWER(:ingredient_name), :price, :item_type)
+                    RETURNING ingredient_id
+                    """
+                ), {
+                    "ingredient_name": ingredient.name,
+                    "price": ingredient.price,
+                    "item_type": ingredient.item_type
+                })
+                ingredient_id = ingredient_insert_result.scalar_one()
+            else:
+                ingredient_id = existing_ingredient_id
+
+            # insert into recipe_ingredients with the retrieved or new ingredient_id
             connection.execute(sqlalchemy.text(
                 """
                 INSERT INTO recipe_ingredients (recipe_id, ingredient_id, amount_units)
@@ -188,23 +203,30 @@ def create_recipe(recipe: Recipe):
                 "amount_units": ingredient.amount_units
             })
 
-        # for every supply insert it into the supplies 
+        # insert each supply for the recipe
         for supply in recipe.supplies:
-            # Convert supply name to lowercase for case-insensitive uniqueness
-            connection.execute(sqlalchemy.text(
-                """
-                INSERT INTO supplies (supply_name)
-                VALUES (LOWER(:supply_name))
-                ON CONFLICT (LOWER(supply_name)) DO NOTHING
-                """
-            ), {"supply_name": supply.supply_name})
-
-            supply_id = connection.execute(sqlalchemy.text(
+            # check if the supply already exists (case insensitive)
+            existing_supply_result = connection.execute(sqlalchemy.text(
                 """
                 SELECT supply_id FROM supplies WHERE LOWER(supply_name) = LOWER(:supply_name)
                 """
-            ), {"supply_name": supply.supply_name}).scalar_one()
+            ), {"supply_name": supply.supply_name})
+            existing_supply_id = existing_supply_result.scalar()
 
+            # if the supply does not exist, insert it
+            if existing_supply_id is None:
+                supply_insert_result = connection.execute(sqlalchemy.text(
+                    """
+                    INSERT INTO supplies (supply_name)
+                    VALUES (LOWER(:supply_name))
+                    RETURNING supply_id
+                    """
+                ), {"supply_name": supply.supply_name})
+                supply_id = supply_insert_result.scalar_one()
+            else:
+                supply_id = existing_supply_id
+
+            # insert into recipe_supplies with the retrieved or new supply_id
             connection.execute(sqlalchemy.text(
                 """
                 INSERT INTO recipe_supplies (recipe_id, supply_id)
@@ -220,16 +242,17 @@ def create_recipe(recipe: Recipe):
         "recipe_id": recipe_id
     }
 
-# 1.6 recipe suggestions  
+
+# 1.6 recipe suggestions
 @router.get("/suggestions", response_model=List[SuggestedRecipe])
 def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
-    # create normalized_ingredients so we dont worry about case or spacing 
+    # create normalized_ingredients so we dont worry about case or spacing
     normalized_ingredients = {ingredient.strip().lower() for ingredient in ingredients}
     suggestions = []
 
     with db.engine.begin() as connection:
-        # look through all the recipes and if it includes one of inputted ingredients, return the rest of the ingredients for that recipe
-        recipes = connection.execute(sqlalchemy.text(
+        # fetch all recipes that contain at least one of the ingredients provided by the user
+        recipes_result = connection.execute(sqlalchemy.text(
             """
             SELECT r.id AS recipe_id, r.name AS recipe_name, i.ingredient_name AS ingredient_name, 
                    ri.amount_units, i.price, i.item_type
@@ -244,41 +267,52 @@ def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
                 WHERE LOWER(i.ingredient_name) = ANY(:ingredients)
             )
             """
-        ), {"ingredients": list(normalized_ingredients)}).mappings().all()
+        ), {"ingredients": list(normalized_ingredients)})
+        
+        # get all rows returned by the query
+        recipes_data = recipes_result.mappings().all()
 
-        # filter by recipe id
+        # organize recipes and their ingredients by recipe_id
         recipe_dict = {}
-        for row in recipes:
+        for row in recipes_data:
             recipe_id = row["recipe_id"]
+
+            # if the recipe does not exist in the dictionary, add it
             if recipe_id not in recipe_dict:
                 recipe_dict[recipe_id] = {
                     "id": recipe_id,
                     "name": row["recipe_name"],
                     "ingredients": []
                 }
-            # create a new dict to appened all required ingredients
-            recipe_dict[recipe_id]["ingredients"].append(Ingredient(
+
+            # create the ingredient dictionary and append it to the recipe's ingredient list
+            ingredient_info = Ingredient(
                 name=row["ingredient_name"],
                 amount_units=row["amount_units"],
                 price=row["price"],
                 item_type=row["item_type"]
-            ))
+            )
+            recipe_dict[recipe_id]["ingredients"].append(ingredient_info)
 
-        # determine which ingredient the user doesnt have 
+        # create suggestions by finding missing ingredients for each recipe
         for recipe in recipe_dict.values():
-            missing_ingredients = [
-                ingredient for ingredient in recipe["ingredients"]
-                if ingredient.name.lower() not in normalized_ingredients
-            ]
-            # add to the suggestions if they are missing the ingredients 
+            missing_ingredients = []
+            for ingredient in recipe["ingredients"]:
+                # check if the ingredient is not in the user's provided list
+                if ingredient.name.lower() not in normalized_ingredients:
+                    missing_ingredients.append(ingredient)
+
+            # if there are missing ingredients, add the recipe to the suggestions list
             if missing_ingredients:
-                suggestions.append(SuggestedRecipe(
+                suggested_recipe = SuggestedRecipe(
                     id=recipe["id"],
                     name=recipe["name"],
                     missing_ingredients=missing_ingredients
-                ))
-    
+                )
+                suggestions.append(suggested_recipe)
+
     return suggestions
+
 
 # 1.3 get recipe by id
 @router.get("/{id}", response_model=Recipe)
@@ -343,6 +377,7 @@ def get_recipe_by_id(id: int):
 def update_recipe(id: int, recipe: Recipe):
 
     with db.engine.begin() as connection:
+        # update main recipe details in the recipes table
         result = connection.execute(sqlalchemy.text(
             """
             UPDATE recipes
@@ -358,34 +393,42 @@ def update_recipe(id: int, recipe: Recipe):
             "difficulty": recipe.difficulty
         })
 
+        # check if any rows were updated, if not raise 404 error
         if result.rowcount == 0:
             raise HTTPException(status_code=404, detail="Recipe was not found in db")
 
-        # since we just updated we may have duplicates, so delete duplicate ingredents 
+        # delete existing ingredients for the recipe to avoid duplicates
         connection.execute(sqlalchemy.text(
             "DELETE FROM recipe_ingredients WHERE recipe_id = :id"
         ), {"id": id})
 
+        # insert or update each ingredient in the recipe
         for ingredient in recipe.ingredients:
-            # if the ingredient didnt exist, how we checked above, insert it into ingredients table
-            connection.execute(sqlalchemy.text(
-                """
-                INSERT INTO ingredients (ingredient_name, price, item_type)
-                VALUES (LOWER(:ingredient_name), :price, :item_type)
-                ON CONFLICT (LOWER(ingredient_name)) DO NOTHING
-                """
-            ), {
-                "ingredient_name": ingredient.name,
-                "price": ingredient.price,
-                "item_type": ingredient.item_type
-            })
-
-            ingredient_id = connection.execute(sqlalchemy.text(
+            # check if the ingredient already exists in the ingredients table (case-insensitive)
+            existing_ingredient_id = connection.execute(sqlalchemy.text(
                 """
                 SELECT ingredient_id FROM ingredients WHERE LOWER(ingredient_name) = LOWER(:ingredient_name)
                 """
-            ), {"ingredient_name": ingredient.name}).scalar_one()
+            ), {"ingredient_name": ingredient.name}).scalar()
 
+            # if the ingredient does not exist, insert it
+            if not existing_ingredient_id:
+                ingredient_id = connection.execute(sqlalchemy.text(
+                    """
+                    INSERT INTO ingredients (ingredient_name, price, item_type)
+                    VALUES (:ingredient_name, :price, :item_type)
+                    RETURNING ingredient_id
+                    """
+                ), {
+                    "ingredient_name": ingredient.name.lower(),  # ensure case insensitivity
+                    "price": ingredient.price,
+                    "item_type": ingredient.item_type
+                }).scalar_one()
+            else:
+                # if the ingredient already exists, use its id
+                ingredient_id = existing_ingredient_id
+
+            # insert ingredient into recipe_ingredients table with amount_units
             connection.execute(sqlalchemy.text(
                 """
                 INSERT INTO recipe_ingredients (recipe_id, ingredient_id, amount_units)
@@ -397,26 +440,34 @@ def update_recipe(id: int, recipe: Recipe):
                 "amount_units": ingredient.amount_units
             })
 
-        # do the same thing for supplies as we did for ingredients above
+        # delete existing supplies for the recipe to avoid duplicates
         connection.execute(sqlalchemy.text(
             "DELETE FROM recipe_supplies WHERE recipe_id = :id"
         ), {"id": id})
 
+        # insert or update each supply in the recipe
         for supply in recipe.supplies:
-            connection.execute(sqlalchemy.text(
-                """
-                INSERT INTO supplies (supply_name)
-                VALUES (LOWER(:supply_name))
-                ON CONFLICT (LOWER(supply_name)) DO NOTHING
-                """
-            ), {"supply_name": supply.supply_name})
-
-            supply_id = connection.execute(sqlalchemy.text(
+            # check if the supply already exists in the supplies table (case-insensitive)
+            existing_supply_id = connection.execute(sqlalchemy.text(
                 """
                 SELECT supply_id FROM supplies WHERE LOWER(supply_name) = LOWER(:supply_name)
                 """
-            ), {"supply_name": supply.supply_name}).scalar_one()
+            ), {"supply_name": supply.supply_name}).scalar()
 
+            # if the supply does not exist, insert it
+            if not existing_supply_id:
+                supply_id = connection.execute(sqlalchemy.text(
+                    """
+                    INSERT INTO supplies (supply_name)
+                    VALUES (:supply_name)
+                    RETURNING supply_id
+                    """
+                ), {"supply_name": supply.supply_name.lower()}).scalar_one()
+            else:
+                # if the supply already exists, use its id
+                supply_id = existing_supply_id
+
+            # insert supply into recipe_supplies table with recipe_id and supply_id
             connection.execute(sqlalchemy.text(
                 """
                 INSERT INTO recipe_supplies (recipe_id, supply_id)
