@@ -12,4 +12,5 @@ Have you ever been unsure of what to cook or bake based on your limited kitchen 
 ## ER Diagram
 https://lucid.app/lucidchart/ccbd0d2b-da8c-4746-916b-27ca543afe08/edit?viewport_loc=-1419%2C-596%2C2846%2C1212%2C0_0&invitationId=inv_4f61de36-d527-4cee-82ad-d35ad2e282ce
 
-<img width="467" alt="Screenshot 2024-10-21 at 19 06 08" src="https://github.com/user-attachments/assets/a77a1772-1e88-4170-9245-c63971188cbe">
+<img width="535" alt="Screenshot 2024-11-18 at 13 12 18" src="https://github.com/user-attachments/assets/e75239e6-616e-4586-a172-d85e88edc434">
+
