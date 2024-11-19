@@ -6,7 +6,7 @@
 An example of a Dirty Read would be if Transaction A updates a recipe's name in the database but has not committed yet. Transaction B reads the recipe's name before Transaction A commits or rolls back. An Example of this would be like changing Grandma's Banana Bread to just Banana Bread, that update not being complete, someone else reading that name, but then that Transaction of the name change being rolled back. 
 
 **Sequence Diagram:**  
-![Dirty Read](dirtyReadpt1.png)
+![Dirty Read](dirtyReadPt1.png)
 ![Dirty Read Diagram](dirtyReadPt2.png)
 
 **Impact:**  
