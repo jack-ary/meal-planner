@@ -17,16 +17,16 @@ Use the **Read Committed** isolation level to ensure that Transaction B only see
 
 ## Case 2: Non-Repeatable Read
 **Scenario:**  
-An example of a non-repeatable read would be if Customer A adds a tub of ice cream and a pack of graham crackers to their cart, with Transaction 1 reading their prices at $5 each. Assuming they have enough money with $10 left in their account, Customer A goes to checkout. However, just before checkout, Transaction 2 updates the price of ice cream to $6 per tub.
+An example of a non-repeatable read would be if Customer A adds a tub of ice cream and a pack of graham crackers to their cart, with Transaction 1 reading their prices at $5 each. Customer A goes to checkout, however, just before checkout, Transaction 2 updates the price of ice cream to $6 per tub.
 
 **Sequence Diagram:**  
-*add link*
+<img width="370" alt="Screenshot 2024-11-18 at 23 53 50" src="https://github.com/user-attachments/assets/f3f1e8e1-f03b-4ec1-a888-b53b00dc9e65">
 
 **Impact:**  
-Customer A is charged $11, and they are now in debt.
+Customer A is charged $11 (instead of $10), and they are now in debt.
 
 **Solution:**  
-Use the **Repeatable Read** isolation level to ensure that reads within the same transaction will always return the same result within the transaction (meaning that since the ice cream was added to the cart at $5, it will remain that price until checkout).
+Use the **Repeatable Read** isolation level to ensure that reads within the same transaction will always return the same result within the transaction (meaning that since the ice cream was added to the cart at $5, it will remain that price within the context of that transaction until checkout).
 
 ---
 
