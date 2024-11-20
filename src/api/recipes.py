@@ -515,3 +515,42 @@ def delete_recipe(id: int):
 
     return {"deleted_complete": "Recipe deleted"}
 
+@router.get("/highest-reviewed")
+
+def get_highest_review():
+    """
+    Get the best 3 reviews per recipe and average rating
+    """
+    response = []
+    with db.engine.begin() as connection:
+        best_reviews =connection.execute(sqlalchemy.text(
+            """
+            WITH bestReviews AS ( 
+            SELECT reviews.recipe_id, 
+            recipes.name AS recipe, 
+            COUNT(reviews.review) AS reviewCount,
+            AVG(reviews.rating) AS avgRating, 
+            RANK() OVER (ORDER BY AVG(reviews.rating) DESC, 
+            COUNT(reviews.review) DESC) AS row_num 
+            FROM reviews INNER JOIN recipes ON recipes.id = reviews.recipe_id 
+            GROUP BY reviews.recipe_id, recipes.name, reviews.review 
+            ) 
+            SELECT recipe, 
+            reviewCount, 
+            avgRating
+            FROM bestReviews 
+            ORDER BY avgRating DESC 
+            LIMIT 3;
+            """))
+
+        for review in best_reviews.mappings():
+            response.append(
+                {
+                "recipe": review['recipe'],
+                "review count": review['reviewCount'],
+                "average rating": review['avgRating']
+            }
+        )
+    return response
+
+   
