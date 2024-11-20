@@ -474,23 +474,24 @@ def get_highest_review():
     with db.engine.begin() as connection:
         best_reviews =connection.execute(sqlalchemy.text(
             """
-            WITH bestReviews AS (
-            SELECT reviews.review, 
-            reviews.rating, 
-            reviews.recipe_id,
-            recipes.name AS recipe,
+            WITH bestReviews AS ( 
+            SELECT reviews.recipe_id, 
+            recipes.name AS recipe, 
             COUNT(reviews.review) AS reviewCount,
-            AVG(rating) AS avgRating,
-            ROW_NUMBER() OVER (PARTITION BY reviews.recipe_id ORDER BY AVG(rating) DESC) AS row_num
-            FROM reviews
-            INNER JOIN recipes ON recipes.id = reviews.recipe_id
-            GROUP BY recipe
-            )
-            SELECT recipe, reviewCount,avgRating
-            FROM bestReviews
-            WHERE row_num <3
-            ORDER BY recipe, avgRating DESC
+            AVG(reviews.rating) AS avgRating, 
+            RANK() OVER (ORDER BY AVG(reviews.rating) DESC, 
+            COUNT(reviews.review) DESC) AS row_num 
+            FROM reviews INNER JOIN recipes ON recipes.id = reviews.recipe_id 
+            GROUP BY reviews.recipe_id, recipes.name, reviews.review 
+            ) 
+            SELECT recipe, 
+            reviewCount, 
+            avgRating
+            FROM bestReviews 
+            ORDER BY avgRating DESC 
+            LIMIT 3;
             """))
+
         for review in best_reviews.mappings():
             response.append(
                 {
