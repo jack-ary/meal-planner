@@ -125,6 +125,32 @@ Gets suggested recipes that require some additional ingredients based on the use
 }
 ```
 
+### 1.6 Get Top Rated Recipes - `/highest-reviewed/` (GET)
+Get the best 3 reviews per recipe and average rating
+
+**Response:**
+```json
+[
+  {
+    "recipe": "Banana Bread",
+    "review": "I love this recipe!!!!",
+    "rating": 5,
+    "average rating": 4.5
+  },
+  {
+    "recipe": "Banana Bread",
+    "review": "This Banana Bread",
+    "rating": 4,
+    "average rating": 4.5
+  },
+  {
+    "recipe": "CheeseCake",
+    "review": "booo...",
+    "rating": 1,
+    "average rating": 1
+  }, ...
+]
+```
 
 ## 2. Review Endpoints
 ### 2.1 Fetch Reviews - `/reviews/{recipe_id}` (GET)
