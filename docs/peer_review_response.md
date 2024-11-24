@@ -1,5 +1,13 @@
 # Responses to peer feedback 
 
+## Carts.py
+
+### Create Cart - `/create/`
+- Changed route from `/create/{cart_id}` to `/create/`
+- Added parameters for `customer_id` and `payment_id` and corresponding error checking
+- Fixed parameter binding
+- Fixed typos
+
 ## Reviews.py
 
 ### Get Reviews - `/{recipe_id}`

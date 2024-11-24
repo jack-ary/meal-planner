@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, status
 from src import database as db
 import sqlalchemy
 
@@ -7,16 +7,27 @@ router = APIRouter(
     tags=["cart"],
 )
 
-@router.post("/create/{cart_id}")
-def create_cart():
+@router.post("/create/")
+def create_cart(customer_id: int, payment_id: int):
     """ create cart """
+    
     with db.engine.begin() as connection:
+      response = connection.execute(sqlalchemy.text(
+         """
+         SELECT customer_id
+         FROM customers
+         WHERE customer_id = :customer_id
+         """), {"customer_id": customer_id}).one_or_none()
+      
+      if response is None:
+         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid customer id')
+        
       cart_id = connection.execute(sqlalchemy.text(
          """
         INSERT INTO carts(customer_id, payment_id)
         VALUES (:customer_id, :payment_id)
         RETURNING cart_id
-        """),).scalarone()
+        """), [{"customer_id": customer_id, "payment_id": payment_id}]).scalar_one()
 
     return {"cart_id":cart_id}
 
