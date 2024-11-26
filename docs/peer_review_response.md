@@ -1,11 +1,25 @@
 # Responses to peer feedback 
 
+## Schema 
+
+### `cart_items` table
+- Added primary key `id`
+- Removed primary keys `item_id` and `cart_id`
+
 ## Carts.py
 
 ### Create Cart - `/create/`
 - Changed route from `/create/{cart_id}` to `/create/`
 - Added parameters for `customer_id` and `payment_id` and corresponding error checking
 - Fixed parameter binding
+- Fixed typos
+
+### Set Item Quantity - `"/{cart_id}/items/{item_id}"`
+- Added validation and corresponding `400` error for `quantity`
+- Added validation and corresponding `404` error for `cart_id`
+- Added validation and corresponding `404` error for `item_id`
+- Corrected function parameters
+- Corrected parameterization
 - Fixed typos
 
 ## Reviews.py
