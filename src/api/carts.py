@@ -32,16 +32,32 @@ def create_cart(customer_id: int, payment_id: int):
     return {"cart_id":cart_id}
 
 @router.post("/{cart_id}/items/{item_id}")
-def set_item_quantity(ingredient_name: str, quantity:int):
+def set_item_quantity(cart_id: int, item_id: int, quantity: int):
    """ add items to cart """
+
+   if quantity <= 0:
+      raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid quantity')
+
    with db.engine.begin() as connection:
+      response = connection.execute(sqlalchemy.text(
+            """
+            SELECT 
+            (SELECT ingredient_id FROM ingredients WHERE ingredient_id = :ingredient_id) AS item,
+            (SELECT cart_id FROM carts WHERE cart_id = :cart_id) AS cart
+            """
+        ), [{"ingredient_id": item_id, "cart_id": cart_id}]).one_or_none()
+      
+      if response.item is None:
+         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Ingredient not found')
+
+      if response.cart is None:
+         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Cart not found')
+
       connection.execute(sqlalchemy.text(
         """
         INSERT INTO cart_items (cart_id, item_id, quantity)
         VALUES (:cart_id, :item_id, :quantity)
-        RETURNING cart_id, item_id, quantity
-        """),[{
-              "quantity":quantity }]).scalarone()
+        """),[{"cart_id": cart_id, "item_id": item_id, "quantity": quantity}])
 
    return {"Success": True}
 
