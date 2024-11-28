@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 from src import database as db
 import sqlalchemy
+import re
 
 router = APIRouter(
     prefix="/carts",
@@ -8,7 +9,7 @@ router = APIRouter(
 )
 
 @router.post("/create/")
-def create_cart(customer_id: int, payment_id: int):
+def create_cart(customer_id: int):
     """ create cart """
     
     with db.engine.begin() as connection:
@@ -24,10 +25,10 @@ def create_cart(customer_id: int, payment_id: int):
         
       cart_id = connection.execute(sqlalchemy.text(
          """
-        INSERT INTO carts(customer_id, payment_id)
-        VALUES (:customer_id, :payment_id)
+        INSERT INTO carts(customer_id)
+        VALUES (:customer_id)
         RETURNING cart_id
-        """), [{"customer_id": customer_id, "payment_id": payment_id}]).scalar_one()
+        """), [{"customer_id": customer_id}]).scalar_one()
 
     return {"cart_id":cart_id}
 
@@ -63,33 +64,53 @@ def set_item_quantity(cart_id: int, item_id: int, quantity: int):
 
 
 @router.post("/{cart_id}/checkout")
-def checkout(customer_name: str,card_num:int,exp_date:str,customer_id:int):
-   """purchase items"""
+def checkout(cart_id: int, card_num: int, exp_date: str, customer_id: int, cvv: int):
+   """purchase items. exp_date must be of the form MM/YY """
+
+   # MM/YY regex to compare against exp_date
+   regex = r"^(0[1-9]|1[0-2])\/([0-9]{2})$"
+    
+   # Check if expiration date matches the regex
+   if not re.match(regex, exp_date):
+      raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid expiration date')
+   
    with db.engine.begin() as connection:
-      payment = connection.execute(sqlalchemy.text(
+      response = connection.execute(sqlalchemy.text(
+            """
+            SELECT 
+            (SELECT customer_id FROM customers WHERE customer_id = :customer_id) AS customer,
+            (SELECT cart_id FROM carts WHERE cart_id = :cart_id) AS cart
+            """
+        ), [{"customer_id": customer_id, "cart_id": cart_id}]).one_or_none()
+      
+      if response.customer is None:
+         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid customer id')
+      
+      if response.cart is None:
+         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Cart not found')
+
+      connection.execute(sqlalchemy.text(
          """
-        INSERT INTO payments (payment_id, card_num, exp_date, cvv, customer_id)
-        VALUES (:payment_id, :card_num, :exp_date, :cvv, :customer_id)
-        RETURNING payment_id, card_num, exp_date, cvv, customer_id
-        """), [{
-                "card_num": card_num,
-                "exp_date": exp_date,
-                "customer_id": customer_id}])
-      if not payment:
-        raise Exception("Payment failed")
+         INSERT INTO payments (card_num, exp_date, cvv, customer_id)
+         VALUES (:card_num, :exp_date, :cvv, :customer_id)
+         """), [{"card_num": card_num,
+                  "exp_date": exp_date,
+                  "cvv": cvv,
+                  "customer_id": customer_id}])
       
       cart_checkout = connection.execute(sqlalchemy.text(
            """
-        SELECT cart_items.cart_id, cart_items.item_id,
+        SELECT cart_items.cart_id,
         SUM(cart_items.quantity) AS total_ingredients_purchased,
         SUM(cart_items.quantity*ingredients.price) AS total_amount_paid
         FROM cart_items
         JOIN ingredients ON ingredients.ingredient_id = cart_items.item_id
         WHERE cart_items.cart_id = :cart_id
-            """)).scalarone()
+        GROUP BY cart_items.cart_id
+            """), [{"cart_id": cart_id}]).one()
       
-      total_ingredients_purchased = cart_checkout["total_ingredients_purchased"]
-      total_amount_paid = cart_checkout["total_amount_paid"]
+      total_ingredients_purchased = cart_checkout.total_ingredients_purchased
+      total_amount_paid = cart_checkout.total_amount_paid
 
    return {
             "total_ingredients_purchased": total_ingredients_purchased,
