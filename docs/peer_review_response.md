@@ -4,23 +4,39 @@
 
 ### `cart_items` table
 - Added primary key `id`
-- Removed primary keys `item_id` and `cart_id`
+- Changed `item_id` column from primary key to foreign key
+    - New relation: `cart_items.item_id` -> `ingredients.ingredient_id`
+- Changed `cart_id` column from primary key to foreign key
+    - New relation: `cart_items.cart_id` -> `carts.cart_id`
+
+### `payments` table
+- Added foreign key relation on `payments.customer_id` -> `customers.customer_id`
 
 ## Carts.py
 
 ### Create Cart - `/create/`
 - Changed route from `/create/{cart_id}` to `/create/`
-- Added parameters for `customer_id` and `payment_id` and corresponding error checking
+- Added parameters for `customer_id` and corresponding error checking
 - Fixed parameter binding
 - Fixed typos
+- Removed references to primary key `payment_id`, which should be auto incremented and assigned by the data base 
 
-### Set Item Quantity - `"/{cart_id}/items/{item_id}"`
+### Set Item Quantity - `/{cart_id}/items/{item_id}`
 - Added validation and corresponding `400` error for `quantity`
 - Added validation and corresponding `404` error for `cart_id`
 - Added validation and corresponding `404` error for `item_id`
 - Corrected function parameters
 - Corrected parameterization
-- Fixed typos
+- Fixed typo on `scalar_one()` call
+
+### Checkout - `/{cart_id}/checkout`
+- Removed unnecessary `customer_name` function parameter 
+- Fixed typo on `scalar_one()` call
+- Added necessary `cart_id` function parameter
+- Fix checkout query
+- Add validation for `exp_date` param
+- Again: Removed references to primary key `payment_id`, which should be auto incremented and assigned by the data base 
+- Added validation for `cart_id` and `customer_id` and corresponding HTTP error codes
 
 ## Reviews.py
 
