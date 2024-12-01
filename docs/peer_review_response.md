@@ -12,6 +12,9 @@
 ### `payments` table
 - Added foreign key relation on `payments.customer_id` -> `customers.customer_id`
 
+### `recipes` table 
+- Added check for difficulties `easy`, `medium`, `hard`
+
 ## Carts.py
 
 ### Create Cart - `/create/`
@@ -55,3 +58,20 @@
 - Removed the `deleted_by` parameter and the corresponding logging statement
 - Added a `404` exception for invalid an invalid `review_id`. 
     - Due to this new exception throwing scenario, there is no need for a more verbose response upon success. `"OK"` is sufficient. 
+
+### Recipes.py
+
+###  Get Reviews
+- Added a `500` execption when the database errors out.
+
+###  Post Review 
+- Added return statement recipe.name
+
+### Get highest-reviewed '/highest-reviewed'
+- Added a `500` execption when the database errors out.
+
+### Customers.py
+
+### Post Customer
+- Added a `409` expection for when a customer name is already exists. Validates the customer name.
+- Added a `500` expection for when the database errors out.

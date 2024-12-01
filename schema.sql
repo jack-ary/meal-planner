@@ -223,7 +223,7 @@ CREATE TABLE public.recipes (
     id bigint NOT NULL,
     name text NOT NULL,
     instructions text,
-    difficulty text,
+    difficulty text CHECK (difficulty IN ('easy', 'medium', 'hard')),
     "time" integer
     ingredients text[] NOT NULL DEFAULT '{}',
     supplies_needed text[] NOT NULL DEFAULT '{}'

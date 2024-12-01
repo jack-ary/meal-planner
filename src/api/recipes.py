@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from src import database as db
@@ -41,74 +41,83 @@ class SuggestedRecipe(BaseModel):
 @router.get("/", response_model=List[RecipeResponse])
 def get_recipes(ingredients: Optional[List[str]] = Query(None), difficulty: Optional[str] = None, supplies: Optional[List[str]] = Query(None)):
 
-    with db.engine.begin() as connection:
-        # get all the recipe data that we need
-        recipe_query = """SELECT id, name, instructions, time, difficulty FROM recipes AS r"""
-        recipe_data = connection.execute(sqlalchemy.text(recipe_query)).mappings().all()
+    try:
 
-        # get all the ingredient data
-        ingredient_query = """SELECT r.id as recipe_id, i.ingredient_name, ri.amount_units, i.price, i.item_type
+        with db.engine.begin() as connection:
+            # get all the recipe data that we need
+            recipe_query = """SELECT id, name, instructions, time, difficulty FROM recipes AS r"""
+            recipe_data = connection.execute(sqlalchemy.text(recipe_query)).mappings().all()
+
+            # get all the ingredient data
+            ingredient_query = """SELECT r.id as recipe_id, i.ingredient_name, ri.amount_units, i.price, i.item_type
                               FROM recipes AS r
                               LEFT OUTER JOIN recipe_ingredients AS ri ON ri.recipe_id = r.id
                               LEFT OUTER JOIN ingredients AS i ON i.ingredient_id = ri.ingredient_id
                            """        
-        ingredient_data = connection.execute(sqlalchemy.text(ingredient_query)).mappings().all()
+            ingredient_data = connection.execute(sqlalchemy.text(ingredient_query)).mappings().all()
 
-        # get all the supply data
-        supplies_query = """SELECT r.id as recipe_id, s.supply_name
+            # get all the supply data
+            supplies_query = """SELECT r.id as recipe_id, s.supply_name
                             FROM recipes AS r
                             LEFT OUTER JOIN recipe_supplies rs ON r.id = rs.recipe_id
                             LEFT OUTER JOIN supplies s ON rs.supply_id = s.supply_id
                          """        
-        supplies_data = connection.execute(sqlalchemy.text(supplies_query)).mappings().all()
+            supplies_data = connection.execute(sqlalchemy.text(supplies_query)).mappings().all()
+    
+    except sqlalchemy.exc.SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error occured when fetching recipes."
+        ) from e
+
 
         # filter the ingredients and supplies by recipe_id 
-        ingredients_dict = {}
-        for ingredient in ingredient_data:
-            recipe_id = ingredient["recipe_id"]
-            ingredient_info = {
-                "name": ingredient["ingredient_name"],
-                "amount_units": ingredient["amount_units"],
-                "price": ingredient["price"],
-                "item_type": ingredient["item_type"]
+    ingredients_dict = {}
+    for ingredient in ingredient_data:
+        recipe_id = ingredient["recipe_id"]
+        ingredient_info = {
+            "name": ingredient["ingredient_name"],
+            "amount_units": ingredient["amount_units"],
+            "price": ingredient["price"],
+            "item_type": ingredient["item_type"]
             }
-            if recipe_id not in ingredients_dict:
-                ingredients_dict[recipe_id] = []
-            if ingredient["ingredient_name"]:  # don't want to get an ingredient if its name is None
-                ingredients_dict[recipe_id].append(ingredient_info)
+        if recipe_id not in ingredients_dict:
+            ingredients_dict[recipe_id] = []
+        if ingredient["ingredient_name"]:  # don't want to get an ingredient if its name is None
+            ingredients_dict[recipe_id].append(ingredient_info)
 
-        supplies_dict = {}
-        for supply in supplies_data:
-            recipe_id = supply["recipe_id"]
-            supply_info = {"supply_name": supply["supply_name"]}
-            if recipe_id not in supplies_dict:
-                supplies_dict[recipe_id] = []
-            if supply["supply_name"]:  # catching an edge case, don't want to get a None supply name
-                supplies_dict[recipe_id].append(supply_info)
+    supplies_dict = {}
+    for supply in supplies_data:
+        recipe_id = supply["recipe_id"]
+        supply_info = {"supply_name": supply["supply_name"]}
+        if recipe_id not in supplies_dict:
+            supplies_dict[recipe_id] = []
+        if supply["supply_name"]:  # catching an edge case, don't want to get a None supply name
+            supplies_dict[recipe_id].append(supply_info)
 
         # with all the information we have above create a list of recipes 
-        recipes = []
-        for recipe in recipe_data:
-            recipe_id = recipe["id"]
-            new_recipe = Recipe(
-                id=recipe["id"],
-                name=recipe["name"],
-                ingredients=[
-                    Ingredient(
-                        name=ingredient["name"],
-                        amount_units=ingredient["amount_units"],
-                        price=ingredient["price"],
-                        item_type=ingredient["item_type"]
-                    ) for ingredient in ingredients_dict.get(recipe_id, [])
-                ],
-                instructions=recipe["instructions"],
-                time=recipe["time"],
-                difficulty=recipe["difficulty"],
-                supplies=[
-                    Supply(supply_name=supply["supply_name"]) for supply in supplies_dict.get(recipe_id, [])
-                ]
-            )
-            recipes.append(new_recipe)
+    recipes = []
+    for recipe in recipe_data:
+        recipe_id = recipe["id"]
+        new_recipe = Recipe(
+            id=recipe["id"],
+            name=recipe["name"],
+            ingredients=[
+                Ingredient(
+                    name=ingredient["name"],
+                    amount_units=ingredient["amount_units"],
+                    price=ingredient["price"],
+                    item_type=ingredient["item_type"]
+                ) for ingredient in ingredients_dict.get(recipe_id, [])
+            ],
+            instructions=recipe["instructions"],
+            time=recipe["time"],
+            difficulty=recipe["difficulty"],
+            supplies=[
+                Supply(supply_name=supply["supply_name"]) for supply in supplies_dict.get(recipe_id, [])
+            ]
+        )
+        recipes.append(new_recipe)
 
     # this is going to filter all the recipes so we can match their input preferences and also takes care of case and whitespace
     if difficulty:
@@ -238,7 +247,7 @@ def create_recipe(recipe: Recipe):
             })
 
     return {
-        "recipe_created": "Recipe created successfully",
+        "recipe_created": recipe.name,
         "recipe_id": recipe_id
     }
 
@@ -520,10 +529,10 @@ def get_highest_review():
     """
     Get the best 3 reviews per recipe and average rating
     """
-
-    response = []
-    with db.engine.begin() as connection:
-        best_reviews =connection.execute(sqlalchemy.text(
+    try:
+        response = []
+        with db.engine.begin() as connection:
+            best_reviews =connection.execute(sqlalchemy.text(
             """
             WITH rankedReviews AS (
             SELECT reviews.review, 
@@ -544,15 +553,20 @@ def get_highest_review():
             ORDER BY recipe, row_num;
             """))
 
-        for review in best_reviews.mappings():
-            response.append(
+            for review in best_reviews.mappings():
+                response.append(
                 {
                 "recipe": review['recipe'],
                 "review": review['review'],
                 "rating": review['rating'],
-                "average rating": review['avgrating']
+                "average rating": review['avgRating']
             }
         )
-    return response
+        return response
+    except sqlalchemy.exc.SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error when fetching the highest reviewed recipes."
+        ) from e
 
    
