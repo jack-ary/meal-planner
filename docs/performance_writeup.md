@@ -35,13 +35,13 @@ The above table shows how the data has been distributed for our performance tuni
 | Recipes      | /recipes/update                | 308.30               |
 | Recipes      | /recipes/delete                | .                   |
 | Recipes      | /recipes/get-highest-review    | 2810.81             |
-| Reviews      | /reviews/get                   | .                    |
-| Reviews      | /reviews/create                | .                   |
-| Reviews      | /reviews/delete                | .                   |
+| Reviews      | /reviews/get                   | 354.27               |
+| Reviews      | /reviews/create                | 83.04               |
+| Reviews      | /reviews/delete                | 100.04               |
 
 ### 3: Performance Tuning 
 
-#### 3.1 
+#### 3.1 Get Recipes
 Original Query: 
 ```sql
 ```
