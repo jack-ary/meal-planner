@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from src import database as db
 import sqlalchemy
+import time
 
 router = APIRouter(
     prefix="/recipes",
@@ -48,7 +49,7 @@ class SuggestedRecipe(BaseModel):
 # 1.1 get recipes
 @router.get("/", response_model=List[RecipeResponse], status_code=200)
 def get_recipes(ingredients: Optional[List[str]] = Query(None), difficulty: Optional[str] = None, supplies: Optional[List[str]] = Query(None)):
-
+    start_time = time.time()
     with db.engine.begin() as connection:
         # get all the recipe data that we need
         recipe_query = """SELECT id, name, instructions, time, difficulty FROM recipes AS r"""
@@ -149,13 +150,16 @@ def get_recipes(ingredients: Optional[List[str]] = Query(None), difficulty: Opti
             "supplies": recipe.supplies
         })
 
+    execution_time_ms = (time.time() - start_time) * 1000
+    print(f"{execution_time_ms:.2f} ms")
+
     return response
 
 
 # 1.2 create recipe
 @router.post("/", response_model=Dict[str, Any], status_code=201)
 def create_recipe(recipe: CreateRecipe):
-
+    start_time = time.time()
     if recipe.time <= 0:
         raise HTTPException(status_code=400, detail="Time must be a positive integer.")
     if not recipe.name.strip():
@@ -268,6 +272,9 @@ def create_recipe(recipe: CreateRecipe):
                 "supply_id": supply_id
             })
 
+    execution_time_ms = (time.time() - start_time) * 1000
+    print(f"{execution_time_ms:.2f} ms")
+
     return {
         "recipe_created": "Recipe created successfully",
         "recipe_id": recipe_id
@@ -280,6 +287,7 @@ def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
     """ get recipe suggestions, limited to 100 """
 
     # create normalized_ingredients so we dont worry about case or spacing
+    start_time = time.time()
     normalized_ingredients = {ingredient.strip().lower() for ingredient in ingredients}
     suggestions = []
 
@@ -307,7 +315,11 @@ def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
                     WHERE LOWER(i.ingredient_name) LIKE '%' || ingredient_pattern || '%'
                 )
             )
+<<<<<<< Updated upstream
             LIMIT 100
+=======
+            LIMIT 50
+>>>>>>> Stashed changes
             """
         ), {"ingredients": list(normalized_ingredients)})
         
@@ -352,6 +364,8 @@ def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
                     missing_ingredients=missing_ingredients
                 )
                 suggestions.append(suggested_recipe)
+    execution_time_ms = (time.time() - start_time) * 1000
+    print(f"{execution_time_ms:.2f} ms")
 
     return suggestions
 
@@ -359,7 +373,7 @@ def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
 # 1.3 get recipe by id
 @router.get("/{id}", response_model=Recipe, status_code=200)
 def get_recipe_by_id(id: int):
-
+    start_time = time.time()
     with db.engine.begin() as connection:
         ingredients = connection.execute(sqlalchemy.text(
             """
@@ -403,6 +417,9 @@ def get_recipe_by_id(id: int):
         if not recipe:
             raise HTTPException(status_code=404, detail="Recipe not found")
 
+        execution_time_ms = (time.time() - start_time) * 1000
+        print(f"{execution_time_ms:.2f} ms")
+
         return {
             "id": recipe.id,
             "name": recipe.name,
@@ -417,7 +434,7 @@ def get_recipe_by_id(id: int):
 # 1.4 update recipe
 @router.put("/{id}", response_model=Dict[str, str], status_code=200)
 def update_recipe(id: int, recipe: Recipe):
-
+    start_time = time.time()
     with db.engine.begin() as connection:
         # update main recipe details in the recipes table
         result = connection.execute(sqlalchemy.text(
@@ -519,6 +536,8 @@ def update_recipe(id: int, recipe: Recipe):
                 "recipe_id": id,
                 "supply_id": supply_id
             })
+    execution_time_ms = (time.time() - start_time) * 1000
+    print(f"{execution_time_ms:.2f} ms")
 
     return {"recipe_updated": "Recipe updated successfully"}
 
@@ -526,7 +545,7 @@ def update_recipe(id: int, recipe: Recipe):
 # 1.5 delete recipe
 @router.delete("/{id}", response_model=Dict[str, str], status_code=200)
 def delete_recipe(id: int):
-
+    start_time = time.time()
     with db.engine.begin() as connection:
 
         # delete in recipe
@@ -540,6 +559,9 @@ def delete_recipe(id: int):
     if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="Recipe was not found in db")
 
+    execution_time_ms = (time.time() - start_time) * 1000
+    print(f"{execution_time_ms:.2f} ms")
+
     return {"deleted_complete": "Recipe deleted"}
 
 @router.get("/highest-reviewed/")
@@ -547,7 +569,7 @@ def get_highest_review():
     """
     Get the best 3 reviews per recipe and average rating
     """
-
+    start_time = time.time()
     response = []
     with db.engine.begin() as connection:
         best_reviews =connection.execute(sqlalchemy.text(
@@ -580,6 +602,10 @@ def get_highest_review():
                 "average rating": review['avgrating']
             }
         )
+            
+    execution_time_ms = (time.time() - start_time) * 1000
+    print(f"{execution_time_ms:.2f} ms")
+
     return response
 
    
