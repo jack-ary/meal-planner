@@ -277,6 +277,8 @@ def create_recipe(recipe: CreateRecipe):
 # 1.6 recipe suggestions
 @router.get("/suggestions", response_model=List[SuggestedRecipe], status_code=200)
 def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
+    """ get recipe suggestions, limited to 100 """
+
     # create normalized_ingredients so we dont worry about case or spacing
     normalized_ingredients = {ingredient.strip().lower() for ingredient in ingredients}
     suggestions = []
@@ -305,6 +307,7 @@ def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
                     WHERE LOWER(i.ingredient_name) LIKE '%' || ingredient_pattern || '%'
                 )
             )
+            LIMIT 100
             """
         ), {"ingredients": list(normalized_ingredients)})
         
