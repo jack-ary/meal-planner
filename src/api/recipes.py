@@ -18,8 +18,16 @@ class Ingredient(BaseModel):
 class Supply(BaseModel):
     supply_name: str
 
+class CreateRecipe(BaseModel):
+    name: str
+    ingredients: List[Ingredient]
+    instructions: str
+    time: int
+    difficulty: str
+    supplies: List[Supply]
+
 class Recipe(BaseModel):
-    id: Optional[int]
+    id: int
     name: str
     ingredients: List[Ingredient]
     instructions: str
@@ -38,7 +46,7 @@ class SuggestedRecipe(BaseModel):
 
 
 # 1.1 get recipes
-@router.get("/", response_model=List[RecipeResponse])
+@router.get("/", response_model=List[RecipeResponse], status_code=200)
 def get_recipes(ingredients: Optional[List[str]] = Query(None), difficulty: Optional[str] = None, supplies: Optional[List[str]] = Query(None)):
 
     with db.engine.begin() as connection:
@@ -145,8 +153,31 @@ def get_recipes(ingredients: Optional[List[str]] = Query(None), difficulty: Opti
 
 
 # 1.2 create recipe
-@router.post("/", response_model=Dict[str, Any])
-def create_recipe(recipe: Recipe):
+@router.post("/", response_model=Dict[str, Any], status_code=201)
+def create_recipe(recipe: CreateRecipe):
+
+    if recipe.time <= 0:
+        raise HTTPException(status_code=400, detail="Time must be a positive integer.")
+    if not recipe.name.strip():
+        raise HTTPException(status_code=400, detail="Recipe name cannot be empty.")
+
+    ingredient_names = set()
+    for ingredient in recipe.ingredients:
+        if not ingredient.name.strip():
+            raise HTTPException(status_code=400, detail="Ingredient name cannot be empty.")
+        if ingredient.amount_units is not None and not ingredient.amount_units.strip():
+            raise HTTPException(status_code=400, detail=f"Ingredient {ingredient.name}: amount units cannot be empty.")
+        if ingredient.name.lower() in ingredient_names:
+            raise HTTPException(status_code=400, detail=f"Duplicate ingredient: {ingredient.name}")
+        ingredient_names.add(ingredient.name.lower().strip())
+
+    supply_names = set()
+    for supply in recipe.supplies:
+        if not supply.supply_name.strip():
+            raise HTTPException(status_code=400, detail="Supply name cannot be empty.")
+        if supply.supply_name.lower() in supply_names:
+            raise HTTPException(status_code=400, detail=f"Duplicate supply: {supply.supply_name}")
+        supply_names.add(supply.supply_name.lower().strip())
 
     with db.engine.begin() as connection:
         # insert the recipe the person wants to create into the recipes table
@@ -157,10 +188,10 @@ def create_recipe(recipe: Recipe):
             RETURNING id
             """
         ), {
-            "name": recipe.name,
+            "name": recipe.name.strip(),
             "instructions": recipe.instructions,
             "time": recipe.time,
-            "difficulty": recipe.difficulty
+            "difficulty": recipe.difficulty.strip()
         })
         recipe_id = recipe_result.scalar_one()
 
@@ -244,7 +275,7 @@ def create_recipe(recipe: Recipe):
 
 
 # 1.6 recipe suggestions
-@router.get("/suggestions", response_model=List[SuggestedRecipe])
+@router.get("/suggestions", response_model=List[SuggestedRecipe], status_code=200)
 def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
     # create normalized_ingredients so we dont worry about case or spacing
     normalized_ingredients = {ingredient.strip().lower() for ingredient in ingredients}
@@ -255,16 +286,24 @@ def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
         recipes_result = connection.execute(sqlalchemy.text(
             """
             SELECT r.id AS recipe_id, r.name AS recipe_name, i.ingredient_name AS ingredient_name, 
-                   ri.amount_units, i.price, i.item_type
+                ri.amount_units, i.price, i.item_type
             FROM recipes AS r
             INNER JOIN recipe_ingredients AS ri ON r.id = ri.recipe_id
             INNER JOIN ingredients AS i ON i.ingredient_id = ri.ingredient_id
-            WHERE LOWER(i.ingredient_name) = ANY(:ingredients)
+            WHERE EXISTS (
+                SELECT 1
+                FROM unnest(:ingredients) AS ingredient_pattern
+                WHERE LOWER(i.ingredient_name) LIKE '%' || ingredient_pattern || '%'
+            )
             OR r.id IN (
                 SELECT DISTINCT recipe_id
                 FROM recipe_ingredients ri
                 INNER JOIN ingredients i ON ri.ingredient_id = i.ingredient_id
-                WHERE LOWER(i.ingredient_name) = ANY(:ingredients)
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM unnest(:ingredients) AS ingredient_pattern
+                    WHERE LOWER(i.ingredient_name) LIKE '%' || ingredient_pattern || '%'
+                )
             )
             """
         ), {"ingredients": list(normalized_ingredients)})
@@ -315,7 +354,7 @@ def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
 
 
 # 1.3 get recipe by id
-@router.get("/{id}", response_model=Recipe)
+@router.get("/{id}", response_model=Recipe, status_code=200)
 def get_recipe_by_id(id: int):
 
     with db.engine.begin() as connection:
@@ -373,7 +412,7 @@ def get_recipe_by_id(id: int):
 
 
 # 1.4 update recipe
-@router.put("/{id}", response_model=Dict[str, str])
+@router.put("/{id}", response_model=Dict[str, str], status_code=200)
 def update_recipe(id: int, recipe: Recipe):
 
     with db.engine.begin() as connection:
@@ -420,7 +459,7 @@ def update_recipe(id: int, recipe: Recipe):
                     RETURNING ingredient_id
                     """
                 ), {
-                    "ingredient_name": ingredient.name.lower(),  # ensure case insensitivity
+                    "ingredient_name": ingredient.name.lower().strip(),  # ensure case insensitivity
                     "price": ingredient.price,
                     "item_type": ingredient.item_type
                 }).scalar_one()
@@ -462,7 +501,7 @@ def update_recipe(id: int, recipe: Recipe):
                     VALUES (:supply_name)
                     RETURNING supply_id
                     """
-                ), {"supply_name": supply.supply_name.lower()}).scalar_one()
+                ), {"supply_name": supply.supply_name.lower().strip()}).scalar_one()
             else:
                 # if the supply already exists, use its id
                 supply_id = existing_supply_id
@@ -482,25 +521,10 @@ def update_recipe(id: int, recipe: Recipe):
 
 
 # 1.5 delete recipe
-@router.delete("/{id}", response_model=Dict[str, str])
+@router.delete("/{id}", response_model=Dict[str, str], status_code=200)
 def delete_recipe(id: int):
 
     with db.engine.begin() as connection:
-        # delete in recipe_ingredients 
-        connection.execute(sqlalchemy.text(
-            """
-            DELETE FROM recipe_ingredients
-            WHERE recipe_id = :id
-            """
-        ), {"id": id})
-
-        # delete in recipe_supplies
-        connection.execute(sqlalchemy.text(
-            """
-            DELETE FROM recipe_supplies
-            WHERE recipe_id = :id
-            """
-        ), {"id": id})
 
         # delete in recipe
         result = connection.execute(sqlalchemy.text(
