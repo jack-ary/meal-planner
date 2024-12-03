@@ -55,3 +55,33 @@
 - Removed the `deleted_by` parameter and the corresponding logging statement
 - Added a `404` exception for invalid an invalid `review_id`. 
     - Due to this new exception throwing scenario, there is no need for a more verbose response upon success. `"OK"` is sufficient. 
+
+
+
+### Recipes.py 
+
+### 1.1 Get Recipe -  `/get/recipes/`
+- Added Status Codes, and error checking and handling. 
+- Added 200 Code 
+- changed filtering to be in SQL not in pyton
+- Program auto generates id 
+
+### 1.2 Create Recipe - `/create/recipes/`
+- Added status code 201 
+- Added error handling, for validation of input 
+
+### 1.6 Recipe Suggestions - `/get/recipes/suggestions`
+- Added Status Code 
+- Also added error handling
+- Added matching tendencies for like things, so words do not need to be exactly the same 
+
+### 1.3 Get Recipe By ID - `/get/recipes/{id}`
+- Added Status code 
+
+### 1.4 Update Recipe - `/put/recipes/{id}`
+- Added status code 
+
+### 1.5 Delete Recipe By id - `/delete/recipes/{id}`
+- Created is ON CASCADE DELETE 
+- Added foreign key relations properly
+- Eliminated unnecessary SQL
