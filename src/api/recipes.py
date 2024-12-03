@@ -542,7 +542,7 @@ def delete_recipe(id: int):
 
     return {"deleted_complete": "Recipe deleted"}
 
-@router.get("/highest-reviewed/")
+@router.get("/highest-reviewed/", response_model = List[Dict[str, Any]], status_code = 200)
 def get_highest_review():
     """
     Get the best 3 reviews per recipe and average rating
@@ -577,9 +577,13 @@ def get_highest_review():
                 "recipe": review['recipe'],
                 "review": review['review'],
                 "rating": review['rating'],
-                "average rating": review['avgrating']
+                "average_rating": review['avgrating']
             }
         )
+
+    if not response:
+        raise HTTPException(status_code = 204, detail = "This recipe has no reviews.")
+
     return response
 
    
