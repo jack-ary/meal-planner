@@ -155,6 +155,9 @@ def get_recipes(
             "supplies": supplies_dict.get(recipe_id, [])
         })
 
+    if not response:
+        raise HTTPException(status_code = 204, detail = "No recipes found.")
+
     return response
 
 
@@ -288,6 +291,8 @@ def create_recipe(recipe: CreateRecipe):
 # 1.6 recipe suggestions
 @router.get("/suggestions", response_model=List[SuggestedRecipe], status_code=200)
 def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
+    """ get recipe suggestions, limited to 100 """
+
     # create normalized_ingredients so we dont worry about case or spacing
     normalized_ingredients = {ingredient.strip().lower() for ingredient in ingredients}
     suggestions = []
@@ -316,6 +321,7 @@ def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
                     WHERE LOWER(i.ingredient_name) LIKE '%' || ingredient_pattern || '%'
                 )
             )
+            LIMIT 100
             """
         ), {"ingredients": list(normalized_ingredients)})
         
@@ -552,7 +558,7 @@ def delete_recipe(id: int):
 
     return {"deleted_complete": "Recipe deleted"}
 
-@router.get("/highest-reviewed/")
+@router.get("/highest-reviewed/", response_model = List[Dict[str, Any]], status_code = 200)
 def get_highest_review():
     """
     Get the best 3 reviews per recipe and average rating
@@ -587,9 +593,13 @@ def get_highest_review():
                 "recipe": review['recipe'],
                 "review": review['review'],
                 "rating": review['rating'],
-                "average rating": review['avgrating']
+                "average_rating": review['avgrating']
             }
         )
+
+    if not response:
+        raise HTTPException(status_code = 204, detail = "This recipe has no reviews.")
+
     return response
 
    
