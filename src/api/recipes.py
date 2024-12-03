@@ -149,6 +149,9 @@ def get_recipes(ingredients: Optional[List[str]] = Query(None), difficulty: Opti
             "supplies": recipe.supplies
         })
 
+    if not response:
+        raise HTTPException(status_code = 204, detail = "No recipes found.")
+
     return response
 
 
