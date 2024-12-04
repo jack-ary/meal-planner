@@ -1,0 +1,97 @@
+{
+    "name": "Beef Wellington",
+    "ingredients": [
+      {
+        "name": "Beef tenderloin",
+        "amount_units": "1.5 lb",
+        "price": 25,
+        "item_type": "Meat"
+      },
+      {
+        "name": "Mushrooms",
+        "amount_units": "1 lb",
+        "price": 8,
+        "item_type": "Vegetable"
+      },
+      {
+        "name": "Shallots",
+        "amount_units": "2, finely chopped",
+        "price": 2,
+        "item_type": "Vegetable"
+      },
+      {
+        "name": "Prosciutto",
+        "amount_units": "8 slices",
+        "price": 10,
+        "item_type": "Meat"
+      },
+      {
+        "name": "Puff pastry",
+        "amount_units": "1 sheet",
+        "price": 5,
+        "item_type": "Dry"
+      },
+      {
+        "name": "Egg yolk",
+        "amount_units": "1",
+        "price": 1,
+        "item_type": "Wet"
+      },
+      {
+        "name": "Salt",
+        "amount_units": "1 teaspoon",
+        "price": 0.5,
+        "item_type": "Dry"
+      },
+      {
+        "name": "Black pepper",
+        "amount_units": "1 teaspoon",
+        "price": 0.5,
+        "item_type": "Dry"
+      },
+      {
+        "name": "Olive oil",
+        "amount_units": "2 tablespoons",
+        "price": 2,
+        "item_type": "Wet"
+      },
+      {
+        "name": "Thyme leaves",
+        "amount_units": "1 teaspoon, chopped",
+        "price": 1,
+        "item_type": "Herb"
+      },
+      {
+        "name": "Butter",
+        "amount_units": "2 tablespoons",
+        "price": 1,
+        "item_type": "Wet"
+      }
+    ],
+    "instructions": "1. Season the beef tenderloin with salt and pepper, and sear it in a hot pan with olive oil until browned on all sides. Set aside to cool. 2. In the same pan, melt butter and sauté the mushrooms and shallots until all moisture evaporates. Add thyme and cool completely. 3. Lay out plastic wrap on a flat surface. Arrange the prosciutto slices slightly overlapping into a rectangle. Spread the mushroom mixture evenly over the prosciutto. 4. Place the seared beef in the center and roll tightly using the plastic wrap. Chill in the fridge for 30 minutes. 5. Roll out the puff pastry and wrap it around the beef, sealing the edges tightly. Brush with egg yolk. 6. Preheat oven to 400°F (200°C). Place the wrapped beef on a baking tray and bake for 25-30 minutes for medium-rare. Rest for 10 minutes before slicing. 7. Serve slices of Beef Wellington with a rich red wine sauce.",
+    "time": 90,
+    "difficulty": "hard",
+    "supplies": [
+      {
+        "supply_name": "Plastic wrap"
+      },
+      {
+        "supply_name": "Skillet"
+      },
+      {
+        "supply_name": "Pastry brush"
+      },
+      {
+        "supply_name": "Baking tray"
+      },
+      {
+        "supply_name": "Knife"
+      },
+      {
+        "supply_name": "Rolling pin"
+      },
+      {
+        "supply_name": "Chopping board"
+      }
+    ]
+  }  
