@@ -26,11 +26,7 @@ I tried the fried rice and it was delicious! It goes perfectly with my green bea
 
 **Request:** POST/recipes
 ```json
-curl -X 'POST' \
-  'https://meal-planner-9c99.onrender.com/recipes/' \
-  -H 'accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -d '{
+{
   "name": "Green Beans",
   "ingredients": [
     {
@@ -48,7 +44,7 @@ curl -X 'POST' \
       "supply_name": "pan"
     }
   ]
-}’
+}
 ```
 
 **Response:**
@@ -62,11 +58,6 @@ curl -X 'POST' \
 I note that the recipe id is 9, that way I can go back later and look this recipe up directly. A few days later I decide to do just that.
 
 **Request:** GET/recipes/9
-```json
-curl -X 'GET' \
-  'https://meal-planner-9c99.onrender.com/recipes/9' \
-  -H 'accept: application/json'
-```
 
 **Response:**
 ```json
