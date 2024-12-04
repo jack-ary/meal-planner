@@ -1,0 +1,52 @@
+{
+    "name": "Pork Cabbage Dumplings",
+    "ingredients": [
+      {
+        "name": "ground pork",
+        "amount_units": "1 lb",
+        "price": 4,
+        "item_type": "protein"
+      },
+      {
+        "name": "cabbage",
+        "amount_units": "4 cups shredded",
+        "price": 2,
+        "item_type": "vegetable"
+      },
+      {
+        "name": "carrots",
+        "amount_units": "1 cup shredded",
+        "price": 2,
+        "item_type": "vegetable"
+      },
+      {
+        "name": "green onion",
+        "amount_units": "3",
+        "price": 1,
+        "item_type": "vegetable"
+      },
+      {
+        "name": "soy sauce",
+        "amount_units": "3 tbsp",
+        "price": 1,
+        "item_type": "sauce"
+      },
+      {
+        "name": "dumpling wrappers",
+        "amount_units": "50",
+        "price": 5,
+        "item_type": "other"
+      }
+    ],
+    "instructions": "In a large mixing bowl, add all of the ingredients except for the dumpling wrappers. Mix until the filling becomes a sticky paste ...",
+    "time": 50,
+    "difficulty": "medium",
+    "supplies": [
+      {
+        "supply_name": "bowl"
+      },
+      {
+        "supply_name": "pan"
+      }
+    ]
+  }  

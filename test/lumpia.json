@@ -1,0 +1,28 @@
+{
+    "name": "lumpia",
+    "ingredients": [
+      {
+        "name": "pork",
+        "amount_units": "1 pound",
+        "price": 7,
+        "item_type": "protein"
+      },
+      {
+        "name": "cabbage",
+        "amount_units": "1 head shredded",
+        "price": 3,
+        "item_type": "veggie"
+      }
+    ],
+    "instructions": "Cook cabbage and pork, put in dumpling wrappers, fry!",
+    "time": 60,
+    "difficulty": "hard",
+    "supplies": [
+      {
+        "supply_name": "pan"
+      },
+      {
+        "supply_name": "bowl"
+      }
+    ]
+  }
