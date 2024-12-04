@@ -1,0 +1,79 @@
+{
+    "name": "Fluffy Pancakes",
+    "ingredients": [
+      {
+        "name": "All-purpose flour",
+        "amount_units": "1 cup (125g)",
+        "price": 1,
+        "item_type": "Dry"
+      },
+      {
+        "name": "Sugar",
+        "amount_units": "2 tablespoons",
+        "price": 1,
+        "item_type": "Dry"
+      },
+      {
+        "name": "Baking powder",
+        "amount_units": "1 teaspoon",
+        "price": 1,
+        "item_type": "Dry"
+      },
+      {
+        "name": "Baking soda",
+        "amount_units": "1/2 teaspoon",
+        "price": 1,
+        "item_type": "Dry"
+      },
+      {
+        "name": "Salt",
+        "amount_units": "1/4 teaspoon",
+        "price": 1,
+        "item_type": "Dry"
+      },
+      {
+        "name": "Milk",
+        "amount_units": "3/4 cup (180ml)",
+        "price": 1,
+        "item_type": "Wet"
+      },
+      {
+        "name": "Egg",
+        "amount_units": "1 large",
+        "price": 1,
+        "item_type": "Wet"
+      },
+      {
+        "name": "Melted butter",
+        "amount_units": "2 tablespoons",
+        "price": 1,
+        "item_type": "Wet"
+      },
+      {
+        "name": "Vanilla extract",
+        "amount_units": "1 teaspoon",
+        "price": 1,
+        "item_type": "Wet"
+      }
+    ],
+    "instructions": "1. In a large bowl, whisk together the flour, sugar, baking powder, baking soda, and salt. 2. In a separate bowl, whisk together the milk, egg, melted butter, and vanilla extract. 3. Gradually pour the wet ingredients into the dry ingredients and stir gently until just combined. 4. Heat a non-stick skillet or griddle over medium heat and lightly grease with butter or cooking spray. 5. Pour about 1/4 cup of batter onto the skillet for each pancake. Cook until bubbles form on the surface, then flip and cook until golden brown. 6. Serve warm with your favorite toppings.",
+    "time": 20,
+    "difficulty": "Easy",
+    "supplies": [
+      {
+        "supply_name": "Mixing bowl"
+      },
+      {
+        "supply_name": "Whisk"
+      },
+      {
+        "supply_name": "Non-stick skillet or griddle"
+      },
+      {
+        "supply_name": "Spatula"
+      },
+      {
+        "supply_name": "Measuring cups and spoons"
+      }
+    ]
+  }  
