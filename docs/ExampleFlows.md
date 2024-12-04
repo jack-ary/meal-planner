@@ -4,7 +4,7 @@
 
 As a college student living on campus, I have limited groceries and I am tired of the same bland salt, pepper, chicken, and rice dish. I want to spice up my dinner and come up with a new recipe.
 
-**Request: GET /recipes?ingredients=chicken,rice,veggies&skill_level=beginner&supplies=stovetop,pan**
+**Request:** GET /recipes?ingredients=chicken,rice,veggies&skill_level=beginner&supplies=stovetop,pan
 
 **Response:**
 ```json
@@ -22,11 +22,80 @@ As a college student living on campus, I have limited groceries and I am tired o
     ]
 }
 ```
+I tried the fried rice and it was delicious! It goes perfectly with my green bean recipe. I decide to add my green bean recipe so that others can enjoy it as well.
+
+**Request:** POST/recipes
+```json
+curl -X 'POST' \
+  'https://meal-planner-9c99.onrender.com/recipes/' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "name": "Green Beans",
+  "ingredients": [
+    {
+      "name": "green beans",
+      "amount_units": "250 g",
+      "price": 7,
+      "item_type": "vegetable"
+    }
+  ],
+  "instructions": "cook green beans in pan",
+  "time": 10,
+  "difficulty": "easy",
+  "supplies": [
+    {
+      "supply_name": "pan"
+    }
+  ]
+}’
+```
+
+**Response:**
+```json
+{
+  "recipe_created": "Recipe created successfully",
+  "recipe_id": 9
+}
+```
+
+I note that the recipe id is 9, that way I can go back later and look this recipe up directly. A few days later I decide to do just that.
+
+**Request:** GET/recipes/9
+```json
+curl -X 'GET' \
+  'https://meal-planner-9c99.onrender.com/recipes/9' \
+  -H 'accept: application/json'
+```
+
+**Response:**
+```json
+{
+  "id": 9,
+  "name": "Green Beans",
+  "ingredients": [
+    {
+      "name": "green beans",
+      "amount_units": "250 g",
+      "price": 7,
+      "item_type": "vegetable"
+    }
+  ],
+  "instructions": "cook green beans in pan",
+  "time": 10,
+  "difficulty": "easy",
+  "supplies": [
+    {
+      "supply_name": "pan"
+    }
+  ]
+}
+```
 
 ## 2. Create a Review
 Bob wants to make a cake for himself to celebrate his promotion. Given Bob's ingredients, he finds a cake recipe using the Meal Planner. He wants to check the reviews before making the cake. He uses: ```GET /reviews/34``` to find that the reviews for this cake recipe are spectacular. He makes the cake.
 
-Unbeknownst to Bob, he used salt instead of baking powder in the cake recipe. Because of this, Bob ends up with a horrible cake and wants to leave an angry review on the recipe. Bob will do the following:
+Unbeknownst to Bob, someone accidentally wrote salt instead of baking powder in the cake recipe. Because of this, Bob ends up with a horrible cake and wants to leave an angry review on the recipe. Bob will do the following:
 
 **Request: POST /reviews/create/34**
 ```json
@@ -42,9 +111,44 @@ Unbeknownst to Bob, he used salt instead of baking powder in the cake recipe. Be
     "review_id": 54
 }
 ```
-After Bob receives lashback for his horrible review and realizes the mistake that he made, he reluctantly decides to delete his angry review:
 
-**Request: POST /reviews/delete/34**
+A friend of Bob’s realizes the mistake and corrects the recipe.
+
+**Request:** PUT/recipes/34
+```json
+{
+  "id": 34,
+  "name": “Cake”,
+  "ingredients": [
+    {
+      "name": “salt”,
+      "amount_units": “2 “tsp,
+      "price": 1,
+      "item_type": “dry”
+    }
+  ],
+  "instructions": “mix dry ingredients together in a bowl …”,
+  "time": 45,
+  "difficulty": "easy",
+  "supplies": [
+    {
+      "supply_name": "pan"
+    }
+  ]
+}
+```
+
+**Response:**
+```
+{
+  "message": "Recipe updated successfully"
+}
+
+```
+
+After Bob remakes the cake with the newly updated recipe, he decides to delete his angry review:
+
+**Request: POST /reviews/delete/54**
 ```json
 {
     "deleted_by": "bob"
