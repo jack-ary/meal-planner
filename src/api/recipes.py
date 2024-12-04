@@ -46,14 +46,13 @@ class SuggestedRecipe(BaseModel):
 
 # 1.1 get recipes 
 @router.get("/", response_model=List[RecipeResponse], status_code=200)
-
-
 def get_recipes(
     ingredients: Optional[List[str]] = Query(None), 
     difficulty: Optional[str] = None, 
     supplies: Optional[List[str]] = Query(None)
 ):
-    # get all user input into same structure 
+
+    # Normalize input
     if difficulty:
         difficulty = difficulty.strip().lower()
     if ingredients:
@@ -61,105 +60,58 @@ def get_recipes(
     if supplies:
         supplies = [supply.strip().lower() for supply in supplies]
 
-    with db.engine.begin() as connection:
-        # filter for diffculty if given by user 
-        recipes_query = """
-        SELECT r.id, r.name, r.instructions, r.time, r.difficulty
-        FROM recipes AS r
-        WHERE (:difficulty IS NULL OR r.difficulty = :difficulty)
-        """
-        recipes = connection.execute(
-            sqlalchemy.text(recipes_query),
-            {"difficulty": difficulty}
-        ).mappings().all()
+    # Prepare dynamic parameters
+    params = {
+        "difficulty": difficulty or None,
+        "ingredients": ingredients or None,
+        "supplies": supplies or None
+    }
 
-        # Ffilter for ingredients 
-        ingredient_query = """
-        SELECT r.id AS recipe_id, i.ingredient_name, ri.amount_units, i.price, i.item_type
-        FROM recipes AS r
-        LEFT OUTER JOIN recipe_ingredients AS ri ON ri.recipe_id = r.id
-        LEFT OUTER JOIN ingredients AS i ON i.ingredient_id = ri.ingredient_id
-        WHERE (:ingredients IS NULL OR r.id IN (
+    # SQL query
+    query = """
+        WITH 
+        FilteredRecipes AS (
+            SELECT r.id
+            FROM recipes AS r
+            WHERE (:difficulty IS NULL OR r.difficulty = :difficulty)
+        ),
+        FilteredIngredients AS (
             SELECT ri.recipe_id
-            FROM recipe_ingredients ri
-            JOIN ingredients i ON i.ingredient_id = ri.ingredient_id
-            WHERE i.ingredient_name IN :ingredients
+            FROM recipe_ingredients AS ri
+            JOIN ingredients AS i ON i.ingredient_id = ri.ingredient_id
+            WHERE (:ingredients IS NULL OR i.ingredient_name = ANY(:ingredients))
             GROUP BY ri.recipe_id
-            HAVING COUNT(DISTINCT i.ingredient_name = :ingredient_count)
-        ))
-        """
-        ingredient_data = connection.execute(
-            sqlalchemy.text(ingredient_query),
-            {
-                "ingredients": ingredients,
-                "ingredient_count": len(ingredients) if ingredients else 0
-            }
-        ).mappings().all()
-
-        # filter for supplies 
-        supplies_query = """
-        SELECT r.id AS recipe_id, s.supply_name
-        FROM recipes AS r
-        LEFT OUTER JOIN recipe_supplies rs ON r.id = rs.recipe_id
-        LEFT OUTER JOIN supplies AS s ON rs.supply_id = s.supply_id
-        WHERE (:supplies IS NULL OR r.id IN (
+        ),
+        FilteredSupplies AS (
             SELECT rs.recipe_id
-            FROM recipe_supplies rs
-            JOIN supplies s ON rs.supply_id = s.supply_id
-            WHERE s.supply_name IN :supplies
+            FROM recipe_supplies AS rs
+            JOIN supplies AS s ON rs.supply_id = s.supply_id
+            WHERE (:supplies IS NULL OR s.supply_name = ANY(:supplies))
             GROUP BY rs.recipe_id
-            HAVING COUNT(DISTINCT s.supply_name) = :supply_count
-        ))
-        """
-        supplies_data = connection.execute(
-            sqlalchemy.text(supplies_query),
-            {
-                "supplies": supplies,
-                "supply_count": len(supplies) if supplies else 0
-            }
-        ).mappings().all()
+        )
+        SELECT DISTINCT
+            r.id, 
+            r.name, 
+            r.instructions, 
+            r.time, 
+            r.difficulty,
+            i.ingredient_name, 
+            ri.amount_units, 
+            i.price, 
+            i.item_type,
+            s.supply_name
+        FROM recipes AS r
+        LEFT JOIN recipe_ingredients AS ri ON r.id = ri.recipe_id
+        LEFT JOIN ingredients AS i ON i.ingredient_id = ri.ingredient_id
+        LEFT JOIN recipe_supplies AS rs ON r.id = rs.recipe_id
+        LEFT JOIN supplies AS s ON rs.supply_id = s.supply_id
+    """
 
-    # from sql response get all ingredient into into a dict and supply info into a dict
-    ingredients_dict = {}
-    for ingredient in ingredient_data:
-        recipe_id = ingredient["recipe_id"]
-        ingredient_info = {
-            "name": ingredient["ingredient_name"],
-            "amount_units": ingredient["amount_units"],
-            "price": ingredient["price"],
-            "item_type": ingredient["item_type"]
-        }
-        if recipe_id not in ingredients_dict:
-            ingredients_dict[recipe_id] = []
-        ingredients_dict[recipe_id].append(ingredient_info)
-
-    supplies_dict = {}
-    for supply in supplies_data:
-        recipe_id = supply["recipe_id"]
-        supply_info = {"supply_name": supply["supply_name"]}
-        if recipe_id not in supplies_dict:
-            supplies_dict[recipe_id] = []
-        supplies_dict[recipe_id].append(supply_info)
-
-    # this is the response structure we want to send back
-    response = []
-    for recipe in recipes:
-        recipe_id = recipe["id"]
-        response.append({
-            "id": recipe_id,
-            "name": recipe["name"],
-            "ingredients": ingredients_dict.get(recipe_id, []),
-            "instructions": recipe["instructions"],
-            "time": recipe["time"],
-            "difficulty": recipe["difficulty"],
-            "supplies": supplies_dict.get(recipe_id, [])
-        })
-
-    if not response:
-        raise HTTPException(status_code = 204, detail = "No recipes found.")
+    with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text(query), params).mappings().all()
+        response = map_to_recipes(result)
 
     return response
-
 
 
 
@@ -602,4 +554,41 @@ def get_highest_review():
 
     return response
 
-   
+def map_to_recipes(sql_result: List[dict]) -> List[Recipe]:
+    # Temporary dictionary to group by recipe ID
+    recipes_dict = {}
+
+    for row in sql_result:
+        recipe_id = row["id"]
+
+        # Ensure the recipe exists in the dictionary
+        if recipe_id not in recipes_dict:
+            recipes_dict[recipe_id] = {
+                "id": recipe_id,
+                "name": row["name"],
+                "instructions": row["instructions"],
+                "time": row["time"],
+                "difficulty": row["difficulty"],
+                "ingredients": [],
+                "supplies": [],
+            }
+
+        # Add ingredient if present
+        if row.get("ingredient_name"):
+            ingredient = Ingredient(
+                name=row["ingredient_name"],
+                amount_units=row.get("amount_units"),
+                price=row.get("price"),
+                item_type=row.get("item_type"),
+            )
+            if ingredient not in recipes_dict[recipe_id]["ingredients"]:
+                recipes_dict[recipe_id]["ingredients"].append(ingredient)
+
+        # Add supply if present
+        if row.get("supply_name"):
+            supply = Supply(supply_name=row["supply_name"])
+            if supply not in recipes_dict[recipe_id]["supplies"]:
+                recipes_dict[recipe_id]["supplies"].append(supply)
+
+    # Convert the dictionary into Recipe objects
+    return [Recipe(**data) for data in recipes_dict.values()]
