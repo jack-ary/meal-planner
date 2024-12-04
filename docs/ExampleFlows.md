@@ -109,16 +109,16 @@ A friend of Bob’s realizes the mistake and corrects the recipe.
 ```json
 {
   "id": 34,
-  "name": “Cake”,
+  "name": "Cake",
   "ingredients": [
     {
-      "name": “salt”,
-      "amount_units": “2 “tsp,
+      "name": "salt",
+      "amount_units": "2 tsp",
       "price": 1,
-      "item_type": “dry”
+      "item_type": "dry"
     }
   ],
-  "instructions": “mix dry ingredients together in a bowl …”,
+  "instructions": "mix dry ingredients together in a bowl …",
   "time": 45,
   "difficulty": "easy",
   "supplies": [
@@ -156,13 +156,13 @@ Sally, an experienced home baker, is looking for dinner ideas to surprise her si
 **Request: POST/carts/**
 ```json
 {
-    "customer_name": “Sally”
+    "customer_name": "Sally"
 }
 ```
 **Response**
 ```json
 {
-    "cart_id": “72”
+    "cart_id": "72"
 }
 ```
 **Request: /carts/72/items/flour**
