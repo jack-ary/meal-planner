@@ -105,11 +105,19 @@ def get_recipes(
         LEFT JOIN ingredients AS i ON i.ingredient_id = ri.ingredient_id
         LEFT JOIN recipe_supplies AS rs ON r.id = rs.recipe_id
         LEFT JOIN supplies AS s ON rs.supply_id = s.supply_id
+        WHERE 
+            r.id IN (SELECT id FROM FilteredRecipes)
+            AND (:ingredients IS NULL OR r.id IN (SELECT recipe_id FROM FilteredIngredients))
+            AND (:supplies IS NULL OR r.id IN (SELECT recipe_id FROM FilteredSupplies))
+        ORDER BY r.id
     """
 
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text(query), params).mappings().all()
         response = map_to_recipes(result)
+        
+        if not response:
+            raise HTTPException(status_code = 204, detail = "No recipes found.")
 
     return response
 
@@ -243,7 +251,7 @@ def create_recipe(recipe: CreateRecipe):
 # 1.6 recipe suggestions
 @router.get("/suggestions", response_model=List[SuggestedRecipe], status_code=200)
 def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
-    """ get recipe suggestions, limited to 100 """
+    """ get recipe suggestions """
 
     # create normalized_ingredients so we dont worry about case or spacing
     normalized_ingredients = {ingredient.strip().lower() for ingredient in ingredients}
@@ -273,7 +281,6 @@ def get_recipe_suggestions(ingredients: Optional[List[str]] = Query([])):
                     WHERE LOWER(i.ingredient_name) LIKE '%' || ingredient_pattern || '%'
                 )
             )
-            LIMIT 100
             """
         ), {"ingredients": list(normalized_ingredients)})
         
