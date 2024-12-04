@@ -540,7 +540,7 @@ def get_highest_review():
             SELECT recipe, 
                 review, 
                 rating, 
-                avgRating
+                ROUND(avgRating,2) AS avgrating
             FROM rankedReviews
             WHERE row_num <= 3
             ORDER BY recipe, row_num;
